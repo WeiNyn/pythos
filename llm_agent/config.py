@@ -7,6 +7,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from .debug import BreakpointType, BreakpointConfig
+from .logging import LogConfig
 
 LLMProvider = Literal["openai", "anthropic"]
 
@@ -31,12 +32,15 @@ class DebugConfig(BaseModel):
 
 class AgentConfig(BaseModel):
     """Configuration for the LLM Agent"""
-    # Debug settings
+    # Debug and logging settings
     debug: DebugConfig = Field(
         default_factory=DebugConfig,
         description="Debug configuration"
     )
-    """Configuration for the LLM Agent"""
+    logging: LogConfig = Field(
+        default_factory=LogConfig,
+        description="Logging configuration"
+    )
     
     # LLM Provider settings
     llm_provider: LLMProvider = Field(

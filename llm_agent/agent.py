@@ -5,9 +5,10 @@ from typing import Any, Dict, List, Optional
 from pathlib import Path
 from datetime import datetime
 import asyncio
-import logging
+import uuid
 
 from .config import AgentConfig
+from .logging import AgentLogger
 from .tools.base import BaseTool
 from .state import TaskState
 from .llm.base import BaseLLMProvider
@@ -18,7 +19,6 @@ from .debug import (
     BreakpointType
 )
 
-logger = logging.getLogger(__name__)
 
 class Agent:
     """
@@ -27,6 +27,7 @@ class Agent:
     
     def __init__(self, config: AgentConfig):
         """Initialize the agent with the given configuration"""
+        self.task_id = str(uuid.uuid4())
         self.config = config
         self.tools: Dict[str, BaseTool] = {}
         self.state = TaskState()
@@ -35,6 +36,11 @@ class Agent:
         # Debug session
         self.debug_session = DebugSession()
         self.debug_callback: Optional[DebugCallback] = None
+        
+        # Initialize logger
+        log_path = self.config.working_directory / ".llm_agent" / "logs" / "agent.log"
+        self.config.logging.file_path = log_path
+        self.logger = AgentLogger("agent", self.config.logging)
         
         # Initialize tools and LLM provider
         self._initialize_components()
@@ -63,7 +69,11 @@ class Agent:
     def register_tool(self, tool: BaseTool) -> None:
         """Register a new tool with the agent"""
         self.tools[tool.name] = tool
-        logger.debug(f"Registered tool: {tool.name}")
+        self.logger.debug(
+            f"Registered tool: {tool.name}",
+            task_id=self.task_id,
+            tool_name=tool.name
+        )
 
     async def execute_task(self, task: str, debug_callback: Optional[DebugCallback] = None) -> Any:
         """
@@ -78,7 +88,15 @@ class Agent:
         if not self.llm:
             raise RuntimeError("LLM provider not initialized")
             
+        # Generate new task ID and start task
+        self.task_id = str(uuid.uuid4())
         self.state.start_new_task(task)
+        
+        self.logger.info(
+            f"Starting task execution: {task}",
+            task_id=self.task_id,
+            context={"state": "starting"}
+        )
         
         try:
             self.debug_callback = debug_callback
@@ -121,9 +139,16 @@ class Agent:
                         
                     result = await tool.execute(action.tool_args)
                     
-                    # Debug: Log tool result if verbose
-                    if self.config.debug.verbose:
-                        logger.debug(f"Tool {action.tool_name} result: {result}")
+                    # Log tool execution
+                    self.logger.info(
+                        f"Tool execution complete: {action.tool_name}",
+                        task_id=self.task_id,
+                        tool_name=action.tool_name,
+                        context={
+                            "args": action.tool_args,
+                            "result": result
+                        }
+                    )
                     
                     self.state.add_tool_result(action.tool_name, result)
                     
@@ -133,13 +158,25 @@ class Agent:
                         {"state": self.state.dict()}
                     )
                     
-                # Check if task is complete
-                if action.is_complete:
-                    self.state.mark_complete()
-                    return action.result
+                    # Check if task is complete
+                    if action.is_complete:
+                        self.state.mark_complete()
+                        self.logger.info(
+                            "Task completed successfully",
+                            task_id=self.task_id,
+                            context={
+                                "result": action.result,
+                                "duration": self.state.get_task_duration()
+                            }
+                        )
+                        return action.result
                     
         except Exception as e:
-            logger.error(f"Task execution failed: {e}")
+            self.logger.error(
+                f"Task execution failed: {e}",
+                task_id=self.task_id,
+                context={"error": str(e), "traceback": str(e.__traceback__)}
+            )
             self.state.mark_failed(str(e))
             
             # Debug: Handle error in debug callback
