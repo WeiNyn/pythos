@@ -3,7 +3,10 @@ Base LLM provider interface
 """
 from abc import ABC, abstractmethod
 from typing import List, Optional
+
 from pydantic import BaseModel
+
+from ..state.task_state import TaskState
 
 class LLMAction(BaseModel):
     """Represents an action to be taken by the agent"""
@@ -20,7 +23,7 @@ class BaseLLMProvider(ABC):
     async def get_next_action(
         self,
         task: str,
-        state: 'TaskState',  # Forward reference
+        state: TaskState,
         available_tools: List[str]
     ) -> LLMAction:
         """
@@ -40,7 +43,7 @@ class BaseLLMProvider(ABC):
     async def format_prompt(
         self,
         task: str,
-        state: 'TaskState',
+        state: TaskState,
         available_tools: List[str]
     ) -> str:
         """
