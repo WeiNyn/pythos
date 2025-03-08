@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 
 from llm_agent import Agent, AgentConfig
+from llm_agent.state.config import StateStorageConfig
 
 async def main():
     # Load environment variables from .env file
@@ -18,11 +19,16 @@ async def main():
         raise ValueError("OPENAI_API_KEY environment variable not set")
 
     # Configure the agent
+    working_dir = Path.cwd()
     config = AgentConfig(
         llm_provider="openai",
         api_key=api_key,
-        working_directory=Path.cwd(),
-        auto_approve_tools=True  # For demonstration only
+        working_directory=working_dir,
+        auto_approve_tools=True,  # For demonstration only
+        state_storage=StateStorageConfig(
+            type="json",
+            path=working_dir / ".llm_agent" / "state"
+        )
     )
 
     # Create agent instance
