@@ -20,7 +20,6 @@ from .debug import (
 )
 from .state.storage import JsonStateStorage, SqliteStateStorage, StateStorage
 
-
 class Agent:
     """
     Main Agent class that handles task execution and tool coordination
@@ -41,17 +40,20 @@ class Agent:
         
         # Initialize logger
         log_path = self.config.working_directory / ".llm_agent" / "logs" / "agent.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
         self.config.logging.file_path = log_path
         self.logger = AgentLogger("agent", self.config.logging)
         
         # Initialize state storage
         storage_config = self.config.state_storage
         storage_path = storage_config.path or (self.config.working_directory / ".llm_agent" / "state")
+        storage_path.mkdir(parents=True, exist_ok=True)
         
-        if storage_config.type == "sqlite":
-            self.storage = SqliteStateStorage(storage_path / "state.db")
-        else:
-            self.storage = JsonStateStorage(storage_path)
+        self.storage: StateStorage = (
+            SqliteStateStorage(storage_path / "state.db")
+            if storage_config.type == "sqlite"
+            else JsonStateStorage(storage_path)
+        )
             
         # Initialize tools and LLM provider
         self._initialize_components()
@@ -99,21 +101,31 @@ class Agent:
         if not self.llm:
             raise RuntimeError("LLM provider not initialized")
             
+        self.logger.info(
+            f"Starting task execution: {task}",
+            task_id=self.task_id,
+            context={"state": "initializing"}
+        )
+            
         # Generate new task ID and start task
         self.task_id = str(uuid.uuid4())
         self.state.start_new_task(task)
         
-        self.logger.info(
-            f"Starting task execution: {task}",
-            task_id=self.task_id,
-            context={"state": "starting"}
-        )
-        
         try:
             self.debug_callback = debug_callback
             
-            # Begin task execution loop
-            while not self.state.is_complete:
+            # Begin task execution loop with maximum iterations
+            max_iterations = 10  # Prevent infinite loops
+            iteration = 0
+            
+            while not self.state.is_complete and iteration < max_iterations:
+                iteration += 1
+                self.logger.info(
+                    "Starting iteration",
+                    task_id=self.task_id,
+                    context={"iteration": iteration, "max_iterations": max_iterations}
+                )
+                
                 # Debug: Check for LLM breakpoint
                 await self._handle_debug_break(
                     BreakpointType.LLM,
@@ -164,7 +176,8 @@ class Agent:
                         tool_name=action.tool_name,
                         context={
                             "args": action.tool_args,
-                            "result": result
+                            "result": result,
+                            "iteration": iteration
                         }
                     )
                     
@@ -184,10 +197,22 @@ class Agent:
                             task_id=self.task_id,
                             context={
                                 "result": action.result,
-                                "duration": self.state.get_task_duration()
+                                "duration": self.state.get_task_duration(),
+                                "iterations": iteration
                             }
                         )
                         return action.result
+                    
+            # Handle max iterations reached
+            if iteration >= max_iterations:
+                msg = f"Task exceeded maximum iterations ({max_iterations})"
+                self.logger.warning(
+                    msg,
+                    task_id=self.task_id,
+                    context={"iterations": iteration}
+                )
+                self.state.mark_failed(msg)
+                raise RuntimeError(msg)
                     
         except Exception as e:
             self.logger.error(
@@ -211,13 +236,14 @@ class Agent:
             raise
             
         finally:
-            # Save final state and history
+            # Save final state
             self.storage.save_state(self.task_id, self.state.dict())
             
             # Stop debug session if active
             if self.debug_session.active:
                 self.debug_session.stop()
                 self.debug_callback = None
+
     async def _handle_debug_break(self, bp_type: BreakpointType, context: Dict) -> None:
         """Handle potential debug breakpoints"""
         if not self.config.debug.enabled or not self.debug_callback:
