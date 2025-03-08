@@ -1,14 +1,41 @@
 """
 Configuration module for LLM Agent
 """
-from typing import Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from .debug import BreakpointType, BreakpointConfig
+
 LLMProvider = Literal["openai", "anthropic"]
 
+class DebugConfig(BaseModel):
+    """Debug configuration"""
+    enabled: bool = Field(
+        default=False,
+        description="Enable debug mode"
+    )
+    step_by_step: bool = Field(
+        default=False,
+        description="Enable step-by-step execution"
+    )
+    breakpoints: Dict[str, BreakpointConfig] = Field(
+        default_factory=dict,
+        description="Breakpoint configurations"
+    )
+    verbose: bool = Field(
+        default=False,
+        description="Enable verbose debug output"
+    )
+
 class AgentConfig(BaseModel):
+    """Configuration for the LLM Agent"""
+    # Debug settings
+    debug: DebugConfig = Field(
+        default_factory=DebugConfig,
+        description="Debug configuration"
+    )
     """Configuration for the LLM Agent"""
     
     # LLM Provider settings
