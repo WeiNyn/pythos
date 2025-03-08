@@ -18,6 +18,7 @@ from .debug import (
     DebugCallback,
     BreakpointType
 )
+from .state.storage import JsonStateStorage, SqliteStateStorage, StateStorage
 
 
 class Agent:
@@ -28,6 +29,7 @@ class Agent:
     def __init__(self, config: AgentConfig):
         """Initialize the agent with the given configuration"""
         self.task_id = str(uuid.uuid4())
+        self.checkpoint_count = 0
         self.config = config
         self.tools: Dict[str, BaseTool] = {}
         self.state = TaskState()
@@ -42,6 +44,15 @@ class Agent:
         self.config.logging.file_path = log_path
         self.logger = AgentLogger("agent", self.config.logging)
         
+        # Initialize state storage
+        storage_config = self.config.state_storage
+        storage_path = storage_config.path or (self.config.working_directory / ".llm_agent" / "state")
+        
+        if storage_config.type == "sqlite":
+            self.storage = SqliteStateStorage(storage_path / "state.db")
+        else:
+            self.storage = JsonStateStorage(storage_path)
+            
         # Initialize tools and LLM provider
         self._initialize_components()
 
@@ -139,6 +150,13 @@ class Agent:
                         
                     result = await tool.execute(action.tool_args)
                     
+                    # Save state after tool execution
+                    self.storage.save_state(self.task_id, self.state.dict())
+                    
+                    # Create checkpoint if enabled
+                    if self.config.state_storage.auto_checkpoint:
+                        self._create_checkpoint(f"After executing tool: {action.tool_name}")
+                    
                     # Log tool execution
                     self.logger.info(
                         f"Tool execution complete: {action.tool_name}",
@@ -193,8 +211,8 @@ class Agent:
             raise
             
         finally:
-            # Save task history
-            self._save_task_history()
+            # Save final state and history
+            self.storage.save_state(self.task_id, self.state.dict())
             
             # Stop debug session if active
             if self.debug_session.active:
@@ -219,10 +237,18 @@ class Agent:
             if self.debug_session.step_by_step:
                 self.debug_callback.on_step(info)
 
-    def _save_task_history(self) -> None:
-        """Save the current task history"""
-        history_path = self.config.get_task_history_path()
-        history_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # TODO: Implement task history saving
-        pass
+    def _create_checkpoint(self, description: str) -> None:
+        """Create a state checkpoint"""
+        # Check if we've exceeded max checkpoints
+        if self.checkpoint_count >= self.config.state_storage.max_checkpoints:
+            return
+            
+        try:
+            self.storage.create_checkpoint(self.task_id, description)
+            self.checkpoint_count += 1
+        except Exception as e:
+            self.logger.warning(
+                f"Failed to create checkpoint: {e}",
+                task_id=self.task_id,
+                context={"error": str(e)}
+            )

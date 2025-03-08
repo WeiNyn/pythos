@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from .debug import BreakpointType, BreakpointConfig
 from .logging import LogConfig
+from .state.config import StateStorageConfig
 
 LLMProvider = Literal["openai", "anthropic"]
 
@@ -32,7 +33,7 @@ class DebugConfig(BaseModel):
 
 class AgentConfig(BaseModel):
     """Configuration for the LLM Agent"""
-    # Debug and logging settings
+    # Debug, logging, and state settings
     debug: DebugConfig = Field(
         default_factory=DebugConfig,
         description="Debug configuration"
@@ -40,6 +41,9 @@ class AgentConfig(BaseModel):
     logging: LogConfig = Field(
         default_factory=LogConfig,
         description="Logging configuration"
+    )
+    state_storage: StateStorageConfig = Field(
+        description="State storage configuration"
     )
     
     # LLM Provider settings
