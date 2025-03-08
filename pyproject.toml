@@ -1,0 +1,57 @@
+[project]
+name = "llm-agent"
+version = "0.1.0"
+description = "A Python library for LLM-powered development assistance"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "openai>=1.0.0",
+    "anthropic>=0.7.0",
+    "python-dotenv>=1.0.0",
+    "pydantic>=2.0.0",
+    "aiofiles>=23.0.0",
+    "asyncio>=3.4.3",
+    "setuptools>=75.3.0",
+]
+
+[tool.poetry]
+name = "llm-agent"
+version = "0.1.0"
+description = "A Python library for LLM-powered development assistance"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "llm_agent"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+openai = "^1.0.0"
+anthropic = "^0.7.0"
+python-dotenv = "^1.0.0"
+pydantic = "^2.0.0"
+aiofiles = "^23.0.0"
+asyncio = "^3.4.3"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+black = "^23.0.0"
+isort = "^5.0.0"
+mypy = "^1.0.0"
+pytest-asyncio = "^0.21.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "setuptools>=61.0.0", "wheel"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "black>=24.8.0",
+    "isort>=5.13.2",
+    "mypy>=1.14.1",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.24.0",
+]
