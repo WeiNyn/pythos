@@ -180,6 +180,28 @@ class Agent:
                 # Store assistant's thoughts
                 await self.save_message("assistant", action.thoughts)
 
+                # Check for task completion first
+                if action.is_complete:
+                    self.state.mark_complete()
+
+                    # Store completion message
+                    await self.save_message(
+                        "system",
+                        f"Task completed: {action.result}",
+                        {"result": action.result},
+                    )
+
+                    self.logger.info(
+                        "Task completed successfully",
+                        task_id=self.task_id,
+                        context={
+                            "result": action.result,
+                            "duration": self.state.get_task_duration(),
+                            "iterations": iteration,
+                        },
+                    )
+                    return action.result
+
                 # Execute tool if specified
                 if action.tool_name:
                     tool = self.tools.get(action.tool_name)
@@ -236,27 +258,6 @@ class Agent:
                         BreakpointType.STATE, {"state": self.state.dict()}
                     )
 
-                    # Check if task is complete
-                    if action.is_complete:
-                        self.state.mark_complete()
-
-                        # Store completion message
-                        await self.save_message(
-                            "system",
-                            f"Task completed: {action.result}",
-                            {"result": action.result},
-                        )
-
-                        self.logger.info(
-                            "Task completed successfully",
-                            task_id=self.task_id,
-                            context={
-                                "result": action.result,
-                                "duration": self.state.get_task_duration(),
-                                "iterations": iteration,
-                            },
-                        )
-                        return action.result
 
             # Handle max iterations reached
             if iteration >= max_iterations:
