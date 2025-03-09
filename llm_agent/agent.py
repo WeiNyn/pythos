@@ -21,9 +21,7 @@ from .debug import (
 from .state.storage import JsonStateStorage, SqliteStateStorage, StateStorage
 
 class Agent:
-    """
-    Main Agent class that handles task execution and tool coordination
-    """
+    """Main Agent class that handles task execution and memory management"""
     
     def __init__(self, config: AgentConfig):
         """Initialize the agent with the given configuration"""
@@ -59,25 +57,22 @@ class Agent:
         self._initialize_components()
 
     def _initialize_components(self) -> None:
-        """Initialize the agent's components (tools and LLM provider)"""
+        """Initialize the agent's components"""
         # Initialize debug session if enabled
         if self.config.debug.enabled:
             self.debug_session.start()
             self.debug_session.step_by_step = self.config.debug.step_by_step
             
-            # Set up breakpoints from config
             for name, bp_config in self.config.debug.breakpoints.items():
                 self.debug_session.add_breakpoint(name=name, config=bp_config)
 
-        # Import required modules
+        # Import and initialize tools and LLM provider
         from .tools import get_default_tools
-        from .llm import create_llm_provider, BaseLLMProvider
+        from .llm import create_llm_provider
         
-        # Initialize tools and LLM provider
         default_tools = get_default_tools(self.config)
         self.llm = create_llm_provider(self.config)
         
-        # Register tools with both agent and LLM provider
         for tool in default_tools:
             self.register_tool(tool)
             if hasattr(self.llm, 'register_tool'):
@@ -92,16 +87,50 @@ class Agent:
             tool_name=tool.name
         )
 
-    async def execute_task(self, task: str, debug_callback: Optional[DebugCallback] = None) -> Any:
-        """
-        Execute a task using the LLM for guidance and tools for actions
+    async def save_user_input(
+        self, content: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Save user input to memory"""
+        self.state.add_user_input(content, metadata)
+        self.storage.save_state(self.task_id, self.state.dict())
+
+    async def save_message(
+        self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Save a conversation message"""
+        self.state.add_message(role, content, metadata)
+        self.storage.save_state(self.task_id, self.state.dict())
+
+    async def update_context(self, updates: Dict[str, Any]) -> None:
+        """Update persistent context"""
+        self.state.update_context(updates)
+        self.storage.save_state(self.task_id, self.state.dict())
+
+    async def get_related_tasks(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get tasks related to current task"""
+        return self.storage.get_related_tasks(self.task_id, limit)
+
+    async def search_task_history(
+        self, query: str, limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Search through task history"""
+        results = self.storage.search_task_history(query, limit)
         
-        Args:
-            task: The task description to execute
-            
-        Returns:
-            The result of the task execution
-        """
+        tasks = []
+        for task_id, relevance in results:
+            state = self.storage.load_state(task_id)
+            if state:
+                tasks.append({
+                    "task_id": task_id,
+                    "task": state.get("task", ""),
+                    "relevance": relevance,
+                    "completed": state.get("is_complete", False),
+                    "summary": state.get("conversation_summary", {})
+                })
+        return tasks
+
+    async def execute_task(self, task: str, debug_callback: Optional[DebugCallback] = None) -> Any:
+        """Execute a task using the LLM for guidance and tools for actions"""
         if not self.llm:
             raise RuntimeError("LLM provider not initialized")
             
@@ -113,12 +142,21 @@ class Agent:
             
         # Generate new task ID and start task
         self.task_id = str(uuid.uuid4())
-        self.state.start_new_task(task)
+        self.state.start_new_task(task, self.task_id)
         
         try:
             self.debug_callback = debug_callback
             
-            # Begin task execution loop with maximum iterations
+            # Store initial task message
+            await self.save_message("system", f"Starting task: {task}")
+            
+            # Find related tasks for context
+            related_tasks = await self.get_related_tasks()
+            if related_tasks:
+                context_update = {"related_tasks": related_tasks}
+                await self.update_context(context_update)
+            
+            # Begin task execution loop
             max_iterations = 10  # Prevent infinite loops
             iteration = 0
             
@@ -143,6 +181,9 @@ class Agent:
                     available_tools=list(self.tools.keys())
                 )
                 
+                # Store assistant's thoughts
+                await self.save_message("assistant", action.thoughts)
+                
                 # Execute tool if specified
                 if action.tool_name:
                     tool = self.tools.get(action.tool_name)
@@ -158,7 +199,7 @@ class Agent:
                             "state": self.state.dict()
                         }
                     )
-                        
+                    
                     # Execute tool with approval if needed
                     if not self.config.auto_approve_tools or self.state.consecutive_auto_approvals >= self.config.max_consecutive_auto_approvals:
                         # TODO: Implement approval mechanism
@@ -166,7 +207,8 @@ class Agent:
                         
                     result = await tool.execute(action.tool_args)
                     
-                    # Save state after tool execution
+                    # Store tool execution
+                    self.state.add_tool_result(action.tool_name, result, action.tool_args)
                     self.storage.save_state(self.task_id, self.state.dict())
                     
                     # Create checkpoint if enabled
@@ -185,8 +227,6 @@ class Agent:
                         }
                     )
                     
-                    self.state.add_tool_result(action.tool_name, result)
-                    
                     # Debug: Check state change
                     await self._handle_debug_break(
                         BreakpointType.STATE,
@@ -196,6 +236,14 @@ class Agent:
                     # Check if task is complete
                     if action.is_complete:
                         self.state.mark_complete()
+                        
+                        # Store completion message
+                        await self.save_message(
+                            "system", 
+                            f"Task completed: {action.result}",
+                            {"result": action.result}
+                        )
+                        
                         self.logger.info(
                             "Task completed successfully",
                             task_id=self.task_id,
@@ -215,6 +263,7 @@ class Agent:
                     task_id=self.task_id,
                     context={"iterations": iteration}
                 )
+                await self.save_message("system", msg)
                 self.state.mark_failed(msg)
                 raise RuntimeError(msg)
                     
@@ -224,9 +273,9 @@ class Agent:
                 task_id=self.task_id,
                 context={"error": str(e), "traceback": str(e.__traceback__)}
             )
+            await self.save_message("system", f"Task failed: {str(e)}")
             self.state.mark_failed(str(e))
             
-            # Debug: Handle error in debug callback
             if self.debug_callback and self.config.debug.enabled:
                 self.debug_callback.on_error(
                     e,
@@ -243,7 +292,6 @@ class Agent:
             # Save final state
             self.storage.save_state(self.task_id, self.state.dict())
             
-            # Stop debug session if active
             if self.debug_session.active:
                 self.debug_session.stop()
                 self.debug_callback = None
@@ -261,7 +309,6 @@ class Agent:
                 context={"state": self.state.dict()}
             )
             
-            # Notify callback of break
             self.debug_callback.on_break(info)
             
             if self.debug_session.step_by_step:
@@ -269,7 +316,6 @@ class Agent:
 
     def _create_checkpoint(self, description: str) -> None:
         """Create a state checkpoint"""
-        # Check if we've exceeded max checkpoints
         if self.checkpoint_count >= self.config.state_storage.max_checkpoints:
             return
             

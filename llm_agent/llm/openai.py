@@ -31,6 +31,40 @@ class OpenAIProvider(BaseLLMProvider):
         """Register a tool with the provider"""
         self.tools[tool.name] = tool
 
+    def _format_conversation_history(self, messages: List[Dict[str, Any]]) -> str:
+        """Format conversation history for prompt"""
+        if not messages:
+            return "No previous conversation history."
+        
+        formatted = []
+        print(messages)
+        for msg in messages[-50:]:  # Get last 5 messages
+            formatted.append(f"{msg.role}: {msg.content}")
+        return "\n".join(formatted)
+
+    def _format_related_tasks(self, related_tasks: List[Dict[str, Any]]) -> str:
+        """Format related tasks for prompt"""
+        if not related_tasks:
+            return "No related tasks found."
+            
+        formatted = []
+        for task in related_tasks:
+            status = "completed" if task["completed"] else "in progress"
+            formatted.append(f"- {task['task']} (Relevance: {task['similarity']:.2f}, Status: {status})")
+        return "\n".join(formatted)
+
+    def _format_context(self, context: Dict[str, Any]) -> str:
+        """Format persistent context for prompt"""
+        if not context:
+            return "No persistent context available."
+            
+        formatted = []
+        for key, value in context.items():
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value, indent=2)
+            formatted.append(f"# {key}:\n{value}")
+        return "\n\n".join(formatted)
+
     async def get_next_action(
         self, task: str, state: TaskState, available_tools: List[str]
     ) -> LLMAction:
@@ -158,5 +192,54 @@ class OpenAIProvider(BaseLLMProvider):
     async def format_prompt(
         self, task: str, state: TaskState, available_tools: List[str]
     ) -> str:
-        """Format prompt for OpenAI"""
-        return get_system_prompt(task, [self.tools[name] for name in available_tools], str(self.working_dir))
+        """Format prompt for OpenAI with memory integration"""
+        # Get base system prompt
+        base_prompt = get_system_prompt(task, [self.tools[name] for name in available_tools], str(self.working_dir))
+        
+        # Add memory components
+        memory_sections = []
+        
+        # Add conversation history
+        if state.messages:
+            memory_sections.append(f"""
+# Conversation History
+{self._format_conversation_history(state.messages)}""")
+            
+        # Add related tasks
+        if state.related_tasks:
+            memory_sections.append(f"""
+# Related Tasks
+{self._format_related_tasks(state.related_tasks)}""")
+            
+        # Add persistent context
+        if state.context:
+            memory_sections.append(f"""
+# Persistent Context
+{self._format_context(state.context)}""")
+            
+        # Add recent tool executions
+        if state.tool_executions:
+            recent_tools = []
+            for te in state.get_recent_tools():
+                recent_tools.append(f"""
+Tool: {te.tool_name}
+Arguments: {json.dumps(te.args, indent=2)}
+Result: {te.result.model_dump()}
+Timestamp: {te.timestamp.isoformat()}""")
+                
+            memory_sections.append(f"""
+# Recent Tool Executions
+{"\n".join(recent_tools)}""")
+
+        # Combine all sections
+        memory_prompt = "\n".join(memory_sections)
+        
+        return f"""{base_prompt}
+
+====
+
+TASK MEMORY AND CONTEXT
+
+{memory_prompt}
+
+Now, proceed with the next step of the task."""
