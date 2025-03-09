@@ -1,60 +1,55 @@
 """
-Base class and types for tools
+Base tool implementation
 """
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional
+from typing import Dict, Any, Optional
+import time
+from datetime import datetime
 from pydantic import BaseModel
 
-class ToolArguments(BaseModel):
-    """Base class for tool arguments"""
-    pass
-
 class ToolResult(BaseModel):
-    """Base class for tool results"""
+    """Result from tool execution"""
     success: bool
     message: str
-    data: Optional[Any] = None
+    data: Any = None
 
 class BaseTool(ABC):
     """Base class for all tools"""
     
-    def __init__(self, name: str, description: str):
-        self.name = name
-        self.description = description
+    def __init__(self):
+        """Initialize tool"""
+        self.name = self.__class__.__name__
+        self.description = self.__doc__ or "No description available"
+        self.last_execution_time: Optional[float] = None
+        self.last_execution_duration: Optional[float] = None
 
     @abstractmethod
+    async def _execute(self, args: Dict[str, Any]) -> ToolResult:
+        """Internal execute method to be implemented by subclasses"""
+        pass
+
     async def execute(self, args: Dict[str, Any]) -> ToolResult:
         """
-        Execute the tool with the given arguments
+        Execute the tool with timing and result tracking
         
         Args:
-            args: Dictionary of arguments for the tool
+            args: Tool arguments
             
         Returns:
-            ToolResult containing the execution result
+            ToolResult containing execution outcome
         """
-        pass
+        start_time = time.time()
+        self.last_execution_time = datetime.utcnow().timestamp()
 
-    def requires_approval(self, args: Dict[str, Any]) -> bool:
-        """
-        Check if this tool execution requires user approval
-        
-        Args:
-            args: Tool arguments to check
-            
-        Returns:
-            True if approval is required, False otherwise
-        """
-        return True  # Default to requiring approval
+        try:
+            result = await self._execute(args)
+        except Exception as e:
+            result = ToolResult(
+                success=False,
+                message=f"Tool execution failed: {str(e)}",
+                data={"error": str(e)}
+            )
+        finally:
+            self.last_execution_duration = time.time() - start_time
 
-    def validate_args(self, args: Dict[str, Any]) -> None:
-        """
-        Validate the provided arguments
-        
-        Args:
-            args: Arguments to validate
-            
-        Raises:
-            ValueError: If arguments are invalid
-        """
-        pass
+        return result

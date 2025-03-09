@@ -17,6 +17,7 @@ dependencies = [
     "asyncio>=3.4.3",
     "setuptools>=75.3.0",
     "pandas>=2.0.3",
+    "termcolor>=2.4.0",
 ]
 
 [tool.poetry]

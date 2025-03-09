@@ -1,13 +1,44 @@
-"""Simple task example demonstrating memory features"""
+"""Simple task example demonstrating memory and debug features"""
 import os
 import asyncio
 from pathlib import Path
+
+from termcolor import colored
 from llm_agent.agent import Agent
-from llm_agent.config import AgentConfig
+from llm_agent.config import AgentConfig, DebugSettings, BreakpointConfig
+from llm_agent.debug import BreakpointType
 from llm_agent.state.config import StateStorageConfig
+from llm_agent.logging import LogConfig
 
 async def main():
-    """Run a simple task with memory features"""
+    """Run a simple task with enhanced debugging"""
+    print(colored("\nInitializing Agent with Debug Features", "cyan"))
+    print("=" * 80)
+
+    # Configure logging
+    log_config = LogConfig(
+        level="DEBUG",
+        file_path=Path.cwd() / ".llm_agent" / "logs" / "agent.log",
+        console_logging=True,
+        file_logging=True,
+        use_colors=True,
+        show_separators=True,
+        format="%(asctime)s - %(name)s - %(levelname)s\n%(message)s"
+    )
+
+    # Configure debug settings
+    debug_settings = DebugSettings(
+        enabled=True,
+        step_by_step=False,
+        breakpoints={
+            "tool_execution": BreakpointConfig(
+                type=BreakpointType.TOOL,
+                enabled=True,
+                message="Paused before tool execution"
+            )
+        }
+    )
+
     config = AgentConfig(
         llm_provider="openai",
         api_key=os.environ["OPENAI_API_KEY"],
@@ -16,14 +47,19 @@ async def main():
             type="json",  # Using SQLite for better query support
             # path=None,  # Default to working_directory/.llm_agent/state
             auto_checkpoint=True,
-            max_checkpoints=50
+            max_checkpoints=10
         ),
-        rate_limit=10,
+        rate_limit=60,
         auto_approve_tools=True,
-        max_consecutive_auto_approvals=50
+        max_consecutive_auto_approvals=5,
+        debug=debug_settings,
+        logging=log_config
     )
 
     agent = Agent(config)
+
+    print(colored("\nStarting Task Sequence", "cyan"))
+    print("=" * 80)
 
     # First task to establish context
     setup_task = """Create a Python utility module that:
@@ -32,9 +68,9 @@ async def main():
 3. Has proper error handling
 4. Is well-organized and reusable"""
 
-    print("\nExecuting setup task...")
+    print(colored("\nExecuting Setup Task...", "yellow"))
     result = await agent.execute_task(setup_task)
-    print(f"Setup task completed: {result}")
+    print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
 
     # Second task that builds on the first
     processing_task = """Using the utility module we just created:
@@ -43,21 +79,37 @@ async def main():
 3. Include error reporting
 4. Show example usage"""
 
-    print("\nExecuting processing task...")
+    print(colored("\nExecuting Processing Task...", "yellow"))
     result = await agent.execute_task(processing_task)
-    print(f"Processing task completed: {result}")
+    print(colored(f"Processing Task Completed\nResult: {result}\n", "green"))
 
     # Demonstrate memory features
-    print("\nSearching task history...")
+    print(colored("\nDemonstrating Memory Features", "cyan"))
+    print("=" * 80)
+
+    print("\nSearching Task History...")
     history = await agent.search_task_history("CSV")
     for task in history:
-        print(f"Found task: {task['task']} (Relevance: {task['relevance']})")
+        print(colored(f"\nFound Task:", "magenta"))
+        print(f"- Description: {task['task']}")
+        print(f"- Relevance: {task['relevance']}")
+        print(f"- Status: {'Completed' if task['completed'] else 'In Progress'}")
 
-    print("\nGetting related tasks...")
+    print("\nGetting Related Tasks...")
     related = await agent.get_related_tasks(limit=3)
     for task in related:
         status = "Completed" if task["completed"] else "In Progress"
-        print(f"Related task: {task['task']} ({status})")
+        print(colored(f"\nRelated Task:", "magenta"))
+        print(f"- Description: {task['task']}")
+        print(f"- Similarity: {task['similarity']:.2f}")
+        print(f"- Status: {status}")
+
+    print("\nDone!")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print(colored("\nTask interrupted by user", "red"))
+    except Exception as e:
+        print(colored(f"\nError: {str(e)}", "red"))

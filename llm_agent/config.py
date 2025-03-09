@@ -1,91 +1,77 @@
 """
-Configuration module for LLM Agent
+Agent configuration
 """
-from typing import Any, Dict, List, Literal, Optional, Union
 from pathlib import Path
+from typing import Optional, Dict, Any
+from pydantic import BaseModel, validator
 
-from pydantic import BaseModel, Field
-
-from .debug import BreakpointType, BreakpointConfig
-from .logging import LogConfig
 from .state.config import StateStorageConfig
+from .logging import LogConfig, DebugConfig
+from .debug import BreakpointConfig
 
-LLMProvider = Literal["openai", "anthropic"]
-
-class DebugConfig(BaseModel):
-    """Debug configuration"""
-    enabled: bool = Field(
-        default=False,
-        description="Enable debug mode"
-    )
-    step_by_step: bool = Field(
-        default=False,
-        description="Enable step-by-step execution"
-    )
-    breakpoints: Dict[str, BreakpointConfig] = Field(
-        default_factory=dict,
-        description="Breakpoint configurations"
-    )
-    verbose: bool = Field(
-        default=False,
-        description="Enable verbose debug output"
-    )
+class DebugSettings(BaseModel):
+    """Debug settings configuration"""
+    enabled: bool = False
+    step_by_step: bool = False
+    breakpoints: Dict[str, BreakpointConfig] = {}
+    logging: DebugConfig = DebugConfig()
 
 class AgentConfig(BaseModel):
-    """Configuration for the LLM Agent"""
-    # Debug, logging, and state settings
-    debug: DebugConfig = Field(
-        default_factory=DebugConfig,
-        description="Debug configuration"
-    )
-    logging: LogConfig = Field(
-        default_factory=LogConfig,
-        description="Logging configuration"
-    )
-    state_storage: StateStorageConfig = Field(
-        description="State storage configuration"
-    )
-    
-    # LLM Provider settings
-    llm_provider: LLMProvider = Field(
-        description="The LLM provider to use",
-        default="openai"
-    )
-    api_key: str = Field(
-        description="API key for the LLM provider"
-    )
-    rate_limit: int = Field(
-        default=60,
-        description="Maximum API requests per minute"
-    )
-    
-    # Project settings
-    working_directory: Path = Field(
-        description="The working directory for the agent",
-        default=Path.cwd()
-    )
-    
-    # Tool settings
-    auto_approve_tools: bool = Field(
-        description="Whether to auto-approve tool executions",
-        default=False
-    )
-    max_consecutive_auto_approvals: int = Field(
-        description="Maximum number of consecutive auto-approved tool executions",
-        default=3
-    )
-    
-    # Task settings
-    task_history_path: Optional[Path] = Field(
-        description="Path to store task history",
-        default=None
-    )
-    
-    class Config:
-        arbitrary_types_allowed = True
+    """Configuration for LLM Agent"""
+    llm_provider: str
+    api_key: str
+    working_directory: Path
+    state_storage: StateStorageConfig = StateStorageConfig()
+    rate_limit: int = 60
+    auto_approve_tools: bool = False
+    max_consecutive_auto_approvals: int = 3
+    debug: DebugSettings = DebugSettings()
+    logging: LogConfig = LogConfig()
 
-    def get_task_history_path(self) -> Path:
-        """Get the task history path, creating default if none specified"""
-        if self.task_history_path:
-            return self.task_history_path
-        return self.working_directory / ".llm_agent" / "task_history"
+    @validator("working_directory")
+    def validate_working_directory(cls, v: Path) -> Path:
+        """Ensure working directory exists"""
+        if not v.exists():
+            raise ValueError(f"Working directory does not exist: {v}")
+        return v
+
+    @validator("api_key")
+    def validate_api_key(cls, v: str) -> str:
+        """Ensure API key is provided"""
+        if not v.strip():
+            raise ValueError("API key cannot be empty")
+        return v
+
+    def dict(self, *args, **kwargs) -> Dict[str, Any]:
+        """Convert to dictionary with proper Path handling"""
+        d = super().dict(*args, **kwargs)
+        # Convert Path objects to strings
+        d["working_directory"] = str(d["working_directory"])
+        if "file_path" in d.get("logging", {}):
+            if d["logging"]["file_path"]:
+                d["logging"]["file_path"] = str(d["logging"]["file_path"])
+        if "path" in d.get("state_storage", {}):
+            if d["state_storage"]["path"]:
+                d["state_storage"]["path"] = str(d["state_storage"]["path"])
+        return d
+
+    def enable_debug(
+        self, 
+        step_by_step: bool = False,
+        breakpoints: Optional[Dict[str, BreakpointConfig]] = None
+    ) -> None:
+        """Enable debug mode with optional settings"""
+        self.debug.enabled = True
+        self.debug.step_by_step = step_by_step
+        if breakpoints:
+            self.debug.breakpoints = breakpoints
+        # Set debug logging level
+        self.logging.level = "DEBUG"
+        self.logging.use_colors = True
+        self.logging.show_separators = True
+        # Enable all debug features
+        self.debug.logging.enable_tool_logging = True
+        self.debug.logging.enable_rate_limiter_logging = True
+        self.debug.logging.enable_memory_logging = True
+        self.debug.logging.enable_separators = True
+        self.debug.logging.log_level = "DEBUG"

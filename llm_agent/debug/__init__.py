@@ -40,7 +40,7 @@ class DebugSession(BaseModel):
         
     def add_breakpoint(self, name: str, config: BreakpointConfig) -> None:
         """Add a new breakpoint"""
-        self.breakpoints[name] = Breakpoint(**config.dict())
+        self.breakpoints[name] = Breakpoint(**config.model_dump())
         
     def remove_breakpoint(self, name: str) -> None:
         """Remove a breakpoint"""
