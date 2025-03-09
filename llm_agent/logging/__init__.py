@@ -11,6 +11,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from llm_agent.tools.base import ToolResult
+
 class LogConfig(BaseModel):
     """Configuration for logging system"""
     level: str = "INFO"
@@ -38,7 +40,7 @@ class StructuredLogRecord:
         
     def to_dict(self) -> Dict:
         """Convert record to dictionary"""
-        return {
+        data_dict = {
             "timestamp": self.timestamp.isoformat(),
             "level": logging.getLevelName(self.level),
             "message": self.msg,
@@ -46,6 +48,10 @@ class StructuredLogRecord:
             "tool_name": self.tool_name,
             **self.context
         }
+        for key, value in data_dict.items():
+            if isinstance(value, ToolResult):
+                data_dict[key] = value.model_dump()
+        return data_dict
 
 class JsonFormatter(logging.Formatter):
     """Format logs as JSON"""

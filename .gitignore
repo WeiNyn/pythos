@@ -1,12 +1,59 @@
-out
-dist
-node_modules
-tmp
-.vscode-test/
-*.vsix
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
 
-pnpm-lock.yaml
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
 
-.clineignore
+# Mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Project-specific
+.llm_agent/
+task_history/
+
+# Logs
+*.log
+logs/
+
+# Distribution
+dist/
+build/
+*.tar.gz

@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 from llm_agent import Agent, AgentConfig
 from llm_agent.state.config import StateStorageConfig
+from llm_agent.debug import BreakpointConfig
+from llm_agent.config import DebugConfig
 
 async def main():
     # Load environment variables from .env file
@@ -17,14 +19,22 @@ async def main():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise ValueError("OPENAI_API_KEY environment variable not set")
-
     # Configure the agent
     working_dir = Path.cwd()
+    
+    # Enable debug mode for testing
+    debug_config = DebugConfig(
+        enabled=True,
+        verbose=True,
+        step_by_step=False,
+        breakpoints={}
+    )
     config = AgentConfig(
         llm_provider="openai",
         api_key=api_key,
         working_directory=working_dir,
         auto_approve_tools=True,  # For demonstration only
+        debug=debug_config,
         state_storage=StateStorageConfig(
             type="json",
             path=working_dir / ".llm_agent" / "state"
@@ -36,7 +46,7 @@ async def main():
 
     # Execute a simple task
     result = await agent.execute_task(
-        "Create a simple Python function that calculates the factorial of a number"
+        "Create a python script that scans a directory and sorts files by size, printing the results as a form of dataframe",
     )
     
     print("\nTask completed!")

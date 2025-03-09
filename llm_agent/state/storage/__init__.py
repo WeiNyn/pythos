@@ -10,6 +10,8 @@ import shutil
 from pathlib import Path
 from dataclasses import dataclass
 
+from ..json_utils import DateTimeJSONEncoder, json_decoder_hook
+
 @dataclass
 class Checkpoint:
     """Represents a task state checkpoint"""
@@ -65,7 +67,7 @@ class JsonStateStorage(StateStorage):
         """Save task state to JSON file"""
         path = self.state_path / f"{task_id}.json"
         with open(path, "w") as f:
-            json.dump(state, f, indent=2)
+            json.dump(state, f, indent=2, cls=DateTimeJSONEncoder)
             
     def load_state(self, task_id: str) -> Optional[Dict[str, Any]]:
         """Load task state from JSON file"""
@@ -74,7 +76,7 @@ class JsonStateStorage(StateStorage):
             return None
             
         with open(path) as f:
-            return json.load(f)
+            return json.load(f, object_hook=json_decoder_hook)
             
     def create_checkpoint(self, task_id: str, description: str) -> Checkpoint:
         """Create state checkpoint"""
@@ -99,14 +101,15 @@ class JsonStateStorage(StateStorage):
         # Save checkpoint
         path = self.checkpoint_path / f"{checkpoint.id}.json"
         with open(path, "w") as f:
-            json.dump({
+            checkpoint_data = {
                 "id": checkpoint.id,
                 "timestamp": checkpoint.timestamp.isoformat(),
                 "task_id": checkpoint.task_id,
                 "description": checkpoint.description,
                 "state": checkpoint.state,
                 "parent_id": checkpoint.parent_id
-            }, f, indent=2)
+            }
+            json.dump(checkpoint_data, f, indent=2, cls=DateTimeJSONEncoder)
             
         return checkpoint
         
@@ -117,7 +120,7 @@ class JsonStateStorage(StateStorage):
             raise ValueError(f"Checkpoint {checkpoint_id} not found")
             
         with open(path) as f:
-            data = json.load(f)
+            data = json.load(f, object_hook=json_decoder_hook)
             self.save_state(data["task_id"], data["state"])
             return data["state"]
             
@@ -171,11 +174,12 @@ class SqliteStateStorage(StateStorage):
             
     def save_state(self, task_id: str, state: Dict[str, Any]) -> None:
         """Save task state to database"""
+        state_json = json.dumps(state, cls=DateTimeJSONEncoder)
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO states (task_id, state, updated_at)
                 VALUES (?, ?, ?)
-            """, (task_id, json.dumps(state), datetime.utcnow().isoformat()))
+            """, (task_id, state_json, datetime.utcnow().isoformat()))
             conn.commit()
             
     def load_state(self, task_id: str) -> Optional[Dict[str, Any]]:
@@ -188,7 +192,7 @@ class SqliteStateStorage(StateStorage):
             row = cursor.fetchone()
             if not row:
                 return None
-            return json.loads(row[0])
+            return json.loads(row[0], object_hook=json_decoder_hook)
             
     def create_checkpoint(self, task_id: str, description: str) -> Checkpoint:
         """Create state checkpoint in database"""
@@ -221,7 +225,7 @@ class SqliteStateStorage(StateStorage):
                 checkpoint.task_id,
                 checkpoint.timestamp.isoformat(),
                 checkpoint.description,
-                json.dumps(checkpoint.state),
+                json.dumps(checkpoint.state, cls=DateTimeJSONEncoder),
                 checkpoint.parent_id
             ))
             conn.commit()
@@ -241,7 +245,7 @@ class SqliteStateStorage(StateStorage):
                 raise ValueError(f"Checkpoint {checkpoint_id} not found")
                 
             task_id, state = row
-            state_dict = json.loads(state)
+            state_dict = json.loads(state, object_hook=json_decoder_hook)
             self.save_state(task_id, state_dict)
             return state_dict
             
@@ -261,7 +265,7 @@ class SqliteStateStorage(StateStorage):
                     timestamp=datetime.fromisoformat(row[1]),
                     task_id=task_id,
                     description=row[2],
-                    state=json.loads(row[3]),
+                    state=json.loads(row[3], object_hook=json_decoder_hook),
                     parent_id=row[4]
                 )
                 for row in cursor.fetchall()

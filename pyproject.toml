@@ -16,6 +16,7 @@ dependencies = [
     "aiofiles>=23.0.0",
     "asyncio>=3.4.3",
     "setuptools>=75.3.0",
+    "pandas>=2.0.3",
 ]
 
 [tool.poetry]

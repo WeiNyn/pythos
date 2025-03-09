@@ -68,16 +68,20 @@ class Agent:
             # Set up breakpoints from config
             for name, bp_config in self.config.debug.breakpoints.items():
                 self.debug_session.add_breakpoint(name=name, config=bp_config)
+
+        # Import required modules
         from .tools import get_default_tools
         from .llm import create_llm_provider, BaseLLMProvider
         
-        # Initialize tools
+        # Initialize tools and LLM provider
         default_tools = get_default_tools(self.config)
+        self.llm = create_llm_provider(self.config)
+        
+        # Register tools with both agent and LLM provider
         for tool in default_tools:
             self.register_tool(tool)
-            
-        # Initialize LLM provider
-        self.llm = create_llm_provider(self.config)
+            if hasattr(self.llm, 'register_tool'):
+                self.llm.register_tool(tool)
 
     def register_tool(self, tool: BaseTool) -> None:
         """Register a new tool with the agent"""

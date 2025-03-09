@@ -20,7 +20,10 @@ def create_llm_provider(config: AgentConfig) -> BaseLLMProvider:
         ValueError: If provider type is not supported
     """
     if config.llm_provider == "openai":
-        return OpenAIProvider(api_key=config.api_key)
+        return OpenAIProvider(
+            api_key=config.api_key,
+            rpm=config.rate_limit
+        )
     elif config.llm_provider == "anthropic":
         # TODO: Implement Anthropic provider
         raise NotImplementedError("Anthropic provider not yet implemented")

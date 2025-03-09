@@ -34,7 +34,7 @@ class TaskState(BaseModel):
         self.error_message = None
         self.consecutive_auto_approvals = 0
 
-    def add_tool_result(self, tool_name: str, result: Any, args: Dict[str, Any] = None) -> None:
+    def add_tool_result(self, tool_name: str, result: Any, args: Optional[Dict[str, Any]] = None) -> None:
         """
         Add a tool execution result
         
@@ -46,7 +46,7 @@ class TaskState(BaseModel):
         self.tool_executions.append(
             ToolExecution(
                 tool_name=tool_name,
-                args=args or {},
+                args=args if args is not None else {},
                 result=result,
                 timestamp=datetime.utcnow()
             )

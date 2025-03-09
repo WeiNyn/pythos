@@ -9,9 +9,8 @@ from .file_operations import (
     SearchFilesTool,
     ListFilesTool
 )
-from ..config import AgentConfig
 
-def get_default_tools(config: AgentConfig) -> List[BaseTool]:
+def get_default_tools(config) -> List[BaseTool]:
     """
     Get the default set of tools
     

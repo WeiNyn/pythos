@@ -54,6 +54,10 @@ class AgentConfig(BaseModel):
     api_key: str = Field(
         description="API key for the LLM provider"
     )
+    rate_limit: int = Field(
+        default=60,
+        description="Maximum API requests per minute"
+    )
     
     # Project settings
     working_directory: Path = Field(
