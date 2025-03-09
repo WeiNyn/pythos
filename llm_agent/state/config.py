@@ -12,7 +12,7 @@ class StateStorageConfig(BaseModel):
         description="Storage backend type"
     )
     path: Path = Field(
-        description="Path to storage directory or database file"
+        description="Path to storage directory or database file", default=Path.cwd() / ".llm_agent"
     )
     auto_checkpoint: bool = Field(
         default=True,
