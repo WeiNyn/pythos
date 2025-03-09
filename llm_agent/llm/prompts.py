@@ -54,40 +54,44 @@ For task completion:
 <result>Detailed result description</result>
 </response>"""
 
-    # Available tools documentation
+    # Generate tool documentation
     tools_doc = """
 # Available Tools"""
 
-    # Specific tool documentation
-    tools_detail = f"""
-## read_file
-Description: Read contents of a file at specified path.
-Parameters:
-- path: (required) Path of file to read relative to {working_dir}
+    # Generate documentation for each tool
+    tools_detail = []
+    for tool in tools:
+        doc = f"""
+## {tool.name}
+{tool.description}
+
 Example:
-<read_file>
+<{tool.name}>"""
+
+        # Add example parameters based on tool
+        if tool.name == "ReadFileTool":
+            doc += f"""
 <path>src/main.py</path>
-</read_file>
+</{tool.name}>"""
+        elif tool.name == "WriteFileTool":
+            doc += f"""
+<path>src/output.txt</path>
+<content>Hello, world!</content>
+<create_dirs>true</create_dirs>
+</{tool.name}>"""
+        elif tool.name == "SearchFilesTool":
+            doc += f"""
+<directory>src</directory>
+<pattern>*.py</pattern>
+<recursive>true</recursive>
+</{tool.name}>"""
+        elif tool.name == "ListFilesTool":
+            doc += f"""
+<directory>src</directory>
+<recursive>false</recursive>
+</{tool.name}>"""
 
-## write_file
-Description: Create or overwrite a file with specified content.
-Parameters:
-- path: (required) Path to write the file to
-- content: (required) Content to write to the file
-- create_dirs: (optional) Create parent directories (default: true)
-
-## search_files
-Description: Search for files matching a pattern.
-Parameters:
-- directory: (required) Directory to search in
-- pattern: (required) Pattern to match files
-- recursive: (optional) Search subdirectories (default: true)
-
-## list_files
-Description: List files in directory.
-Parameters:
-- directory: (required) Directory to list
-- recursive: (optional) List recursively (default: false)"""
+        tools_detail.append(doc)
 
     # Combine all sections
     return f"""
@@ -98,5 +102,4 @@ Parameters:
 {response_format}
 
 {tools_doc}
-
-{tools_detail}"""
+{"".join(tools_detail)}"""
