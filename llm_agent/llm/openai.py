@@ -18,7 +18,7 @@ from .prompts import get_system_prompt
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-based LLM provider implementation"""
 
-    def __init__(self, api_key: str, rpm: int = 60):
+    def __init__(self, api_key: str, rpm: int = 10):
         """Initialize with API key and rate limit"""
         self.api_key = api_key
         openai.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -37,7 +37,6 @@ class OpenAIProvider(BaseLLMProvider):
             return "No previous conversation history."
         
         formatted = []
-        print(messages)
         for msg in messages[-50:]:  # Get last 5 messages
             formatted.append(f"{msg.role}: {msg.content}")
         return "\n".join(formatted)

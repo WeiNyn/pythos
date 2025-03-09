@@ -157,7 +157,7 @@ class Agent:
                 await self.update_context(context_update)
             
             # Begin task execution loop
-            max_iterations = 10  # Prevent infinite loops
+            max_iterations = 50  # Prevent infinite loops
             iteration = 0
             
             while not self.state.is_complete and iteration < max_iterations:

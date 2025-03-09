@@ -18,7 +18,7 @@ async def main():
             auto_checkpoint=True,
             max_checkpoints=50
         ),
-        rate_limit=60,
+        rate_limit=10,
         auto_approve_tools=True,
         max_consecutive_auto_approvals=50
     )
