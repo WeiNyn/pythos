@@ -63,28 +63,37 @@ async def main():
 
     print(colored("\nStarting Task Sequence", "cyan"))
     print("=" * 80)
-
-    # First task to establish context
-    setup_task = """Create a Python utility module that:
-1. Has functions for CSV data processing
-2. Includes type hints and docstrings
-3. Has proper error handling
-4. Is well-organized and reusable"""
-
+    
+    setup_task = """Create a python script that:
+    1. receives a number as input
+    2. calculates the square of the number
+    3. print a rectangle, square or triangle that has the area equal to the square of the number"""
+    
     print(colored("\nExecuting Setup Task...", "yellow"))
     result = await agent.execute_task(setup_task)
     print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
 
-    # Second task that builds on the first
-    processing_task = """Using the utility module we just created:
-1. Create a script that processes a sample CSV file
-2. Add input validation
-3. Include error reporting
-4. Show example usage"""
+#     # First task to establish context
+#     setup_task = """Create a Python utility module that:
+# 1. Has functions for CSV data processing
+# 2. Includes type hints and docstrings
+# 3. Has proper error handling
+# 4. Is well-organized and reusable"""
 
-    print(colored("\nExecuting Processing Task...", "yellow"))
-    result = await agent.execute_task(processing_task)
-    print(colored(f"Processing Task Completed\nResult: {result}\n", "green"))
+#     print(colored("\nExecuting Setup Task...", "yellow"))
+#     result = await agent.execute_task(setup_task)
+#     print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
+
+#     # Second task that builds on the first
+#     processing_task = """Using the utility module we just created:
+# 1. Create a script that processes a sample CSV file
+# 2. Add input validation
+# 3. Include error reporting
+# 4. Show example usage"""
+
+#     print(colored("\nExecuting Processing Task...", "yellow"))
+#     result = await agent.execute_task(processing_task)
+#     print(colored(f"Processing Task Completed\nResult: {result}\n", "green"))
 
     # Demonstrate memory features
     print(colored("\nDemonstrating Memory Features", "cyan"))

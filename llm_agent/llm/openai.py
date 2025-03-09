@@ -94,8 +94,8 @@ class OpenAIProvider(BaseLLMProvider):
                     },
                 )
 
-            print("=" * 20 + "<Prompt>" + "=" * 20)
-            print(prompt)
+            # print("=" * 20 + "<Prompt>" + "=" * 20)
+            # print(prompt)
             print("=" * 20 + "<Response>" + "=" * 20)
             print(api_response.choices[0].message.content)
             print("=" * 50)
