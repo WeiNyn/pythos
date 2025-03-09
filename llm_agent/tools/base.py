@@ -1,21 +1,26 @@
 """
 Base tool implementation
 """
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+
 import time
+from abc import ABC, abstractmethod
 from datetime import datetime
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
+
 
 class ToolResult(BaseModel):
     """Result from tool execution"""
+
     success: bool
     message: str
     data: Any = None
 
+
 class BaseTool(ABC):
     """Base class for all tools"""
-    
+
     def __init__(self):
         """Initialize tool"""
         self.name = self.__class__.__name__
@@ -31,10 +36,10 @@ class BaseTool(ABC):
     async def execute(self, args: Dict[str, Any]) -> ToolResult:
         """
         Execute the tool with timing and result tracking
-        
+
         Args:
             args: Tool arguments
-            
+
         Returns:
             ToolResult containing execution outcome
         """
@@ -47,7 +52,7 @@ class BaseTool(ABC):
             result = ToolResult(
                 success=False,
                 message=f"Tool execution failed: {str(e)}",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
         finally:
             self.last_execution_duration = time.time() - start_time

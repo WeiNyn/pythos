@@ -1,31 +1,26 @@
 """
 Tool system for LLM Agent
 """
+
 from typing import List
+
 from .base import BaseTool
-from .file_operations import (
-    ReadFileTool,
-    WriteFileTool,
-    SearchFilesTool,
-    ListFilesTool
-)
+from .file_operations import (ListFilesTool, ReadFileTool, SearchFilesTool,
+                              WriteFileTool)
+
 
 def get_default_tools(config) -> List[BaseTool]:
     """
     Get the default set of tools
-    
+
     Args:
         config: Agent configuration
-        
+
     Returns:
         List of initialized tool instances
     """
-    return [
-        ReadFileTool(),
-        WriteFileTool(),
-        SearchFilesTool(),
-        ListFilesTool()
-    ]
+    return [ReadFileTool(), WriteFileTool(), SearchFilesTool(), ListFilesTool()]
+
 
 __all__ = [
     "BaseTool",
@@ -33,5 +28,5 @@ __all__ = [
     "ReadFileTool",
     "WriteFileTool",
     "SearchFilesTool",
-    "ListFilesTool"
+    "ListFilesTool",
 ]

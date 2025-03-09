@@ -1,23 +1,29 @@
 """
 Agent configuration
 """
+
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel, validator
 
-from .state.config import StateStorageConfig
-from .logging import LogConfig, DebugConfig
 from .debug import BreakpointConfig
+from .logging import DebugConfig, LogConfig
+from .state.config import StateStorageConfig
+
 
 class DebugSettings(BaseModel):
     """Debug settings configuration"""
+
     enabled: bool = False
     step_by_step: bool = False
     breakpoints: Dict[str, BreakpointConfig] = {}
     logging: DebugConfig = DebugConfig()
 
+
 class AgentConfig(BaseModel):
     """Configuration for LLM Agent"""
+
     llm_provider: str
     api_key: str
     working_directory: Path
@@ -56,9 +62,9 @@ class AgentConfig(BaseModel):
         return d
 
     def enable_debug(
-        self, 
+        self,
         step_by_step: bool = False,
-        breakpoints: Optional[Dict[str, BreakpointConfig]] = None
+        breakpoints: Optional[Dict[str, BreakpointConfig]] = None,
     ) -> None:
         """Enable debug mode with optional settings"""
         self.debug.enabled = True

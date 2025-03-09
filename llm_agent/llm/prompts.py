@@ -1,9 +1,11 @@
 """
 System prompts for LLM Providers
 """
+
 from typing import List
-from pathlib import Path
+
 from ..tools.base import BaseTool
+
 
 def get_system_prompt(task: str, tools: List[BaseTool], working_dir: str) -> str:
     """Generate the system prompt for the LLM."""

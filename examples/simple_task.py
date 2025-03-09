@@ -1,14 +1,17 @@
 """Simple task example demonstrating memory and debug features"""
-import os
+
 import asyncio
+import os
 from pathlib import Path
 
 from termcolor import colored
+
 from llm_agent.agent import Agent
-from llm_agent.config import AgentConfig, DebugSettings, BreakpointConfig
+from llm_agent.config import AgentConfig, BreakpointConfig, DebugSettings
 from llm_agent.debug import BreakpointType
-from llm_agent.state.config import StateStorageConfig
 from llm_agent.logging import LogConfig
+from llm_agent.state.config import StateStorageConfig
+
 
 async def main():
     """Run a simple task with enhanced debugging"""
@@ -23,7 +26,7 @@ async def main():
         file_logging=True,
         use_colors=True,
         show_separators=True,
-        format="%(asctime)s - %(name)s - %(levelname)s\n%(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s\n%(message)s",
     )
 
     # Configure debug settings
@@ -34,9 +37,9 @@ async def main():
             "tool_execution": BreakpointConfig(
                 type=BreakpointType.TOOL,
                 enabled=True,
-                message="Paused before tool execution"
+                message="Paused before tool execution",
             )
-        }
+        },
     )
 
     config = AgentConfig(
@@ -47,13 +50,13 @@ async def main():
             type="json",  # Using SQLite for better query support
             # path=None,  # Default to working_directory/.llm_agent/state
             auto_checkpoint=True,
-            max_checkpoints=10
+            max_checkpoints=10,
         ),
         rate_limit=60,
         auto_approve_tools=True,
         max_consecutive_auto_approvals=5,
         debug=debug_settings,
-        logging=log_config
+        logging=log_config,
     )
 
     agent = Agent(config)
@@ -90,7 +93,7 @@ async def main():
     print("\nSearching Task History...")
     history = await agent.search_task_history("CSV")
     for task in history:
-        print(colored(f"\nFound Task:", "magenta"))
+        print(colored("\nFound Task:", "magenta"))
         print(f"- Description: {task['task']}")
         print(f"- Relevance: {task['relevance']}")
         print(f"- Status: {'Completed' if task['completed'] else 'In Progress'}")
@@ -99,12 +102,13 @@ async def main():
     related = await agent.get_related_tasks(limit=3)
     for task in related:
         status = "Completed" if task["completed"] else "In Progress"
-        print(colored(f"\nRelated Task:", "magenta"))
+        print(colored("\nRelated Task:", "magenta"))
         print(f"- Description: {task['task']}")
         print(f"- Similarity: {task['similarity']:.2f}")
         print(f"- Status: {status}")
 
     print("\nDone!")
+
 
 if __name__ == "__main__":
     try:

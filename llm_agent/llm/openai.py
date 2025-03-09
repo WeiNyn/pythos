@@ -1,19 +1,21 @@
 """
 OpenAI LLM provider implementation
 """
+
 import json
-from datetime import datetime
-import openai
 import re
-from pathlib import Path
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Optional, Any, Tuple, Union
-from .base import BaseLLMProvider, LLMAction
+from pathlib import Path
+from typing import Any, Dict, List, Union
+
+import openai
+
 from ..state import TaskState
 from ..tools.base import BaseTool
-from pydantic import BaseModel
-from .rate_limiter import RateLimiter
+from .base import BaseLLMProvider, LLMAction
 from .prompts import get_system_prompt
+from .rate_limiter import RateLimiter
+
 
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-based LLM provider implementation"""
@@ -35,7 +37,7 @@ class OpenAIProvider(BaseLLMProvider):
         """Format conversation history for prompt"""
         if not messages:
             return "No previous conversation history."
-        
+
         formatted = []
         for msg in messages[-50:]:  # Get last 5 messages
             formatted.append(f"{msg.role}: {msg.content}")
@@ -45,18 +47,20 @@ class OpenAIProvider(BaseLLMProvider):
         """Format related tasks for prompt"""
         if not related_tasks:
             return "No related tasks found."
-            
+
         formatted = []
         for task in related_tasks:
             status = "completed" if task["completed"] else "in progress"
-            formatted.append(f"- {task['task']} (Relevance: {task['similarity']:.2f}, Status: {status})")
+            formatted.append(
+                f"- {task['task']} (Relevance: {task['similarity']:.2f}, Status: {status})"
+            )
         return "\n".join(formatted)
 
     def _format_context(self, context: Dict[str, Any]) -> str:
         """Format persistent context for prompt"""
         if not context:
             return "No persistent context available."
-            
+
         formatted = []
         for key, value in context.items():
             if isinstance(value, (dict, list)):
@@ -69,32 +73,32 @@ class OpenAIProvider(BaseLLMProvider):
     ) -> LLMAction:
         """Get next action from OpenAI"""
         prompt = await self.format_prompt(task, state, available_tools)
-        
+
         try:
             # Wait for rate limit slot
             await self.rate_limiter.acquire()
-            
+
             api_response = openai.chat.completions.create(
                 model="gemini-2.0-flash-thinking-exp-01-21",  # Or your preferred model
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0
+                temperature=0,
             )
-            
+
             # Log rate limit metrics in debug
-            if hasattr(self, 'logger'):
+            if hasattr(self, "logger"):
                 self.logger.debug(
                     "Rate limit metrics",
                     extra={
                         "current_rpm": self.rate_limiter.get_current_rpm(),
-                        "wait_time": self.rate_limiter.get_wait_time()
-                    }
+                        "wait_time": self.rate_limiter.get_wait_time(),
+                    },
                 )
 
-            print("="*20 + "<Prompt>" + "="*20)
+            print("=" * 20 + "<Prompt>" + "=" * 20)
             print(prompt)
-            print("="*20 + "<Response>" + "="*20)
+            print("=" * 20 + "<Response>" + "=" * 20)
             print(api_response.choices[0].message.content)
-            print("="*50)
+            print("=" * 50)
 
             action = await self.parse_response(api_response.choices[0].message.content)
             print(action)
@@ -103,8 +107,7 @@ class OpenAIProvider(BaseLLMProvider):
         except Exception as e:
             print(e)
             return LLMAction(
-                thoughts=f"Error in OpenAI API call: {str(e)}",
-                is_complete=False
+                thoughts=f"Error in OpenAI API call: {str(e)}", is_complete=False
             )
 
     def _extract_response_xml(self, text: str) -> Union[str, None]:
@@ -130,8 +133,7 @@ class OpenAIProvider(BaseLLMProvider):
             xml_content = self._extract_response_xml(response)
             if not xml_content:
                 return LLMAction(
-                    thoughts="Could not find response XML",
-                    is_complete=False
+                    thoughts="Could not find response XML", is_complete=False
                 )
 
             # Parse XML structure
@@ -140,52 +142,56 @@ class OpenAIProvider(BaseLLMProvider):
 
             # Get required elements
             thoughts = root.find("thoughts")
-            thoughts_text = thoughts.text.strip() if thoughts is not None else "No thoughts provided"
+            thoughts_text = (
+                thoughts.text.strip()
+                if thoughts is not None
+                else "No thoughts provided"
+            )
 
             # Check if this is a completion response
             is_complete_elem = root.find("is_complete")
-            is_complete = is_complete_elem is not None and is_complete_elem.text.strip().lower() == "true"
+            is_complete = (
+                is_complete_elem is not None
+                and is_complete_elem.text.strip().lower() == "true"
+            )
 
             if is_complete:
                 result_elem = root.find("result")
                 result = result_elem.text.strip() if result_elem is not None else None
-                return LLMAction(thoughts=thoughts_text, is_complete=True, result=result)
+                return LLMAction(
+                    thoughts=thoughts_text, is_complete=True, result=result
+                )
 
             # Get tool execution details
             tool = root.find("tool")
             args = root.find("args")
 
             if tool is None or args is None:
-                return LLMAction(
-                    thoughts=thoughts_text,
-                    is_complete=False
-                )
+                return LLMAction(thoughts=thoughts_text, is_complete=False)
 
             # Parse the tool args as JSON
             try:
                 args_dict = self._parse_args_json(args.text)
             except json.JSONDecodeError:
                 return LLMAction(
-                    thoughts="Failed to parse tool arguments as JSON",
-                    is_complete=False
+                    thoughts="Failed to parse tool arguments as JSON", is_complete=False
                 )
 
             return LLMAction(
                 thoughts=thoughts_text,
                 tool_name=tool.text.strip(),
                 tool_args=args_dict,
-                is_complete=False
+                is_complete=False,
             )
 
         except ET.ParseError:
             return LLMAction(
                 thoughts=f"Failed to parse response as XML: {response[:200]}...",
-                is_complete=False
+                is_complete=False,
             )
         except Exception as e:
             return LLMAction(
-                thoughts=f"Error parsing response: {str(e)}",
-                is_complete=False
+                thoughts=f"Error parsing response: {str(e)}", is_complete=False
             )
 
     async def format_prompt(
@@ -193,29 +199,31 @@ class OpenAIProvider(BaseLLMProvider):
     ) -> str:
         """Format prompt for OpenAI with memory integration"""
         # Get base system prompt
-        base_prompt = get_system_prompt(task, [self.tools[name] for name in available_tools], str(self.working_dir))
-        
+        base_prompt = get_system_prompt(
+            task, [self.tools[name] for name in available_tools], str(self.working_dir)
+        )
+
         # Add memory components
         memory_sections = []
-        
+
         # Add conversation history
         if state.messages:
             memory_sections.append(f"""
 # Conversation History
 {self._format_conversation_history(state.messages)}""")
-            
+
         # Add related tasks
         if state.related_tasks:
             memory_sections.append(f"""
 # Related Tasks
 {self._format_related_tasks(state.related_tasks)}""")
-            
+
         # Add persistent context
         if state.context:
             memory_sections.append(f"""
 # Persistent Context
 {self._format_context(state.context)}""")
-            
+
         # Add recent tool executions
         if state.tool_executions:
             recent_tools = []
@@ -225,14 +233,14 @@ Tool: {te.tool_name}
 Arguments: {json.dumps(te.args, indent=2)}
 Result: {te.result.model_dump()}
 Timestamp: {te.timestamp.isoformat()}""")
-                
+
             memory_sections.append(f"""
 # Recent Tool Executions
 {"\n".join(recent_tools)}""")
 
         # Combine all sections
         memory_prompt = "\n".join(memory_sections)
-        
+
         return f"""{base_prompt}
 
 ====
