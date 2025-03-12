@@ -39,7 +39,7 @@ class OpenAIProvider(BaseLLMProvider):
             return "No previous conversation history."
 
         formatted = []
-        for msg in messages[-50:]:  # Get last 5 messages
+        for msg in messages[-50:]:  # Get last 50 messages
             formatted.append(f"{msg.role}: {msg.content}")
         return "\n".join(formatted)
 
@@ -117,14 +117,19 @@ class OpenAIProvider(BaseLLMProvider):
         match = re.search(pattern, text, re.DOTALL)
         return match.group(1) if match else None
 
-    def _parse_args_json(self, args_text: str) -> Dict[str, Any]:
-        """Parse JSON args from text"""
-        # First try to find JSON object in the text
-        pattern = r"\{.*\}"
-        match = re.search(pattern, args_text, re.DOTALL)
-        if not match:
-            raise ValueError("No valid JSON found in args")
-        return json.loads(match.group(0))
+    def _parse_args_xml(self, args_elem: ET.Element) -> Dict[str, Any]:
+        """Parse XML args element into a dictionary"""
+        args_dict = {}
+        for param in args_elem.findall('*'):
+            args_dict[param.tag] = param.text.strip() if param.text else ""
+        return args_dict
+        
+    def _get_tool_specific_response_format(self, tool_name: str) -> Union[str, None]:
+        """Get a tool-specific response format if available"""
+        tool = self.tools.get(tool_name)
+        if tool and hasattr(tool, "get_response_format"):
+            return tool.get_response_format()
+        return None
 
     async def parse_response(self, response: str) -> LLMAction:
         """Parse OpenAI's response into an action using XML format"""
@@ -156,7 +161,8 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
             if is_complete:
-                result_elem = root.find("result")
+                # Look for result in r tag (standard) or result tag
+                result_elem = root.find("r") or root.find("result")
                 result = result_elem.text.strip() if result_elem is not None else None
                 return LLMAction(
                     thoughts=thoughts_text, is_complete=True, result=result
@@ -169,17 +175,14 @@ class OpenAIProvider(BaseLLMProvider):
             if tool is None or args is None:
                 return LLMAction(thoughts=thoughts_text, is_complete=False)
 
-            # Parse the tool args as JSON
-            try:
-                args_dict = self._parse_args_json(args.text)
-            except json.JSONDecodeError:
-                return LLMAction(
-                    thoughts="Failed to parse tool arguments as JSON", is_complete=False
-                )
+            tool_name = tool.text.strip()
+            
+            # Parse the tool args as XML
+            args_dict = self._parse_args_xml(args)
 
             return LLMAction(
                 thoughts=thoughts_text,
-                tool_name=tool.text.strip(),
+                tool_name=tool_name,
                 tool_args=args_dict,
                 is_complete=False,
             )
@@ -227,11 +230,35 @@ class OpenAIProvider(BaseLLMProvider):
         # Add recent tool executions
         if state.tool_executions:
             recent_tools = []
+            
+            # Get details for the most recent tools
             for te in state.get_recent_tools():
+                # Format arguments as XML
+                args_xml = "\n".join([f"    <{k}>{v}</{k}>" for k, v in te.args.items()])
+                
+                # Format result data structure as XML
+                if hasattr(te.result, "model_dump"):
+                    # For newer Pydantic versions
+                    result_data = te.result.model_dump()
+                else:
+                    # For older Pydantic versions
+                    result_data = te.result.dict()
+                
+                result_xml = "\n".join(
+                    [f"    <{k}>{v}</{k}>" for k, v in result_data.items()]
+                )
+                
+                # Add formatted tool execution to the list
                 recent_tools.append(f"""
 Tool: {te.tool_name}
-Arguments: {json.dumps(te.args, indent=2)}
-Result: {te.result.model_dump()}
+Arguments:
+<args>
+{args_xml}
+</args>
+Result:
+<r>
+{result_xml}
+</r>
 Timestamp: {te.timestamp.isoformat()}""")
 
             memory_sections.append(f"""

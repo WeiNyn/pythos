@@ -32,7 +32,7 @@ You have access to tools that are executed upon approval. Use one tool per messa
 <param2>value2</param2>
 </tool_name>"""
 
-    # Response format
+    # Response format - this is now a general format, specific tools may override
     response_format = """
 # Response Format
 
@@ -41,10 +41,8 @@ For tool execution:
 <thoughts>Explain your analysis and next steps</thoughts>
 <tool>tool_name</tool>
 <args>
-{
-    "param1": "value1",
-    "param2": "value2"
-}
+    <param1>value1</param1>
+    <param2>value2</param2>
 </args>
 <is_complete>false</is_complete>
 </response>
@@ -53,7 +51,7 @@ For task completion:
 <response>
 <thoughts>Final analysis and summary</thoughts>
 <is_complete>true</is_complete>
-<result>Detailed result description</result>
+<r>Detailed result description</r>
 </response>"""
 
     # Generate tool documentation
@@ -63,36 +61,21 @@ For task completion:
     # Generate documentation for each tool
     tools_detail = []
     for tool in tools:
+        # First add the tool description
         doc = f"""
 ## {tool.name}
 {tool.description}
-
-Example:
-<{tool.name}>"""
-
-        # Add example parameters based on tool
-        if tool.name == "ReadFileTool":
-            doc += f"""
-<path>src/main.py</path>
-</{tool.name}>"""
-        elif tool.name == "WriteFileTool":
-            doc += f"""
-<path>src/output.txt</path>
-<content>Hello, world!</content>
-<create_dirs>true</create_dirs>
-</{tool.name}>"""
-        elif tool.name == "SearchFilesTool":
-            doc += f"""
-<directory>src</directory>
-<pattern>*.py</pattern>
-<recursive>true</recursive>
-</{tool.name}>"""
-        elif tool.name == "ListFilesTool":
-            doc += f"""
-<directory>src</directory>
-<recursive>false</recursive>
-</{tool.name}>"""
-
+"""
+        # Add parameter descriptions if available
+        params = tool.get_parameters_description()
+        if params:
+            doc += "\nParameters:\n"
+            for param_name, param_desc in params:
+                doc += f"- `{param_name}`: {param_desc}\n"
+        
+        # Add example from the tool itself
+        doc += f"\nExample:\n{tool.get_example()}\n"
+        
         tools_detail.append(doc)
 
     # Combine all sections

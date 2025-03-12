@@ -4,7 +4,7 @@ File operation tools implementation
 
 import os
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 from .base import BaseTool, ToolResult
 
@@ -44,6 +44,19 @@ class ReadFileTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error reading file: {str(e)}", data=None
             )
+    
+    def get_example(self) -> str:
+        """Get example usage for ReadFileTool"""
+        return """
+<ReadFileTool>
+<args>
+    <path>src/main.py</path>
+</args>
+</ReadFileTool>"""
+    
+    def get_parameters_description(self) -> List[Tuple[str, str]]:
+        """Get parameter descriptions for ReadFileTool"""
+        return [("path", "Path to the file to read (relative or absolute)")]
 
 
 class WriteFileTool(BaseTool):
@@ -86,6 +99,25 @@ class WriteFileTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error writing file: {str(e)}", data=None
             )
+            
+    def get_example(self) -> str:
+        """Get example usage for WriteFileTool"""
+        return """
+<WriteFileTool>
+<args>
+    <path>src/output.txt</path>
+    <content>Hello, world!</content>
+    <create_dirs>true</create_dirs>
+</args>
+</WriteFileTool>"""
+    
+    def get_parameters_description(self) -> List[Tuple[str, str]]:
+        """Get parameter descriptions for WriteFileTool"""
+        return [
+            ("path", "Path to write the file to (relative or absolute)"),
+            ("content", "Content to write to the file"),
+            ("create_dirs", "Create parent directories if they don't exist (default: true)")
+        ]
 
 
 class SearchFilesTool(BaseTool):
@@ -136,6 +168,25 @@ class SearchFilesTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error searching files: {str(e)}", data=None
             )
+            
+    def get_example(self) -> str:
+        """Get example usage for SearchFilesTool"""
+        return """
+<SearchFilesTool>
+<args>
+    <directory>src</directory>
+    <pattern>*.py</pattern>
+    <recursive>true</recursive>
+</args>
+</SearchFilesTool>"""
+    
+    def get_parameters_description(self) -> List[Tuple[str, str]]:
+        """Get parameter descriptions for SearchFilesTool"""
+        return [
+            ("directory", "Directory to search in (default: current directory)"),
+            ("pattern", "Glob pattern to match files against (e.g., *.py)"),
+            ("recursive", "Search in subdirectories (default: true)")
+        ]
 
 
 class ListFilesTool(BaseTool):
@@ -186,3 +237,20 @@ class ListFilesTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error listing files: {str(e)}", data=None
             )
+            
+    def get_example(self) -> str:
+        """Get example usage for ListFilesTool"""
+        return """
+<ListFilesTool>
+<args>
+    <directory>src</directory>
+    <recursive>false</recursive>
+</args>
+</ListFilesTool>"""
+    
+    def get_parameters_description(self) -> List[Tuple[str, str]]:
+        """Get parameter descriptions for ListFilesTool"""
+        return [
+            ("directory", "Directory to list files from (default: current directory)"),
+            ("recursive", "List files recursively including subdirectories (default: false)")
+        ]
