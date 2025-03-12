@@ -6,9 +6,11 @@ from pathlib import Path
 from typing import List
 
 import pytest
+from unittest.mock import patch, MagicMock
 
 from llm_agent.tools.file_operations import (ListFilesTool, ReadFileTool,
-                                             SearchFilesTool, WriteFileTool)
+                                             SearchFilesTool, WriteFileTool,
+                                             ReplaceInFileTool, RunCommandLineTool)
 
 
 @pytest.fixture
@@ -129,3 +131,172 @@ async def test_list_files_tool(nested_files: Path):
 
     assert not result.success
     assert "not found" in result.message
+
+
+@pytest.mark.asyncio
+async def test_replace_in_file_tool(temp_dir: Path):
+    """Test ReplaceInFileTool functionality"""
+    tool = ReplaceInFileTool()
+    
+    # Create a test file
+    test_file = temp_dir / "replace_test.txt"
+    original_content = """function testFunction() {
+    console.log('This is a test');
+    return 'old value';
+}"""
+    test_file.write_text(original_content)
+    
+    # Test successful replacement with git-style markers
+    replacement_content = """<<<<<<< SEARCH
+function testFunction() {
+    console.log('This is a test');
+    return 'old value';
+}
+=======
+function testFunction() {
+    console.log('This is a test');
+    return 'new value';
+}
+>>>>>>> REPLACE"""
+    
+    result = await tool.execute({
+        "path": str(test_file),
+        "content": replacement_content
+    })
+    
+    assert result.success
+    assert result.data["replacements_made"] == 1
+    assert "new value" in test_file.read_text()
+    assert "old value" not in test_file.read_text()
+    
+    # Test replacement with count limit
+    test_file.write_text("repeat repeat repeat")
+    replacement_content = """<<<<<<< SEARCH
+repeat
+=======
+REPLACED
+>>>>>>> REPLACE"""
+    
+    result = await tool.execute({
+        "path": str(test_file),
+        "content": replacement_content,
+        "count": 2
+    })
+    
+    assert result.success
+    assert result.data["replacements_made"] == 2
+    new_content = test_file.read_text()
+    assert new_content == "REPLACED REPLACED repeat"
+    
+    # Test replacement not found
+    replacement_content = """<<<<<<< SEARCH
+not_existing_text
+=======
+any_replacement
+>>>>>>> REPLACE"""
+    
+    result = await tool.execute({
+        "path": str(test_file),
+        "content": replacement_content
+    })
+    
+    assert result.success  # Tool execution should still succeed even if no replacements were made
+    assert result.data["replacements_made"] == 0
+    assert "Search text not found" in result.message
+    
+    # Test invalid file path
+    result = await tool.execute({
+        "path": "nonexistent.txt",
+        "content": replacement_content
+    })
+    
+    assert not result.success
+    assert "not found" in result.message
+    
+    # Test invalid format
+    invalid_content = "This is not in the right format"
+    result = await tool.execute({
+        "path": str(test_file),
+        "content": invalid_content
+    })
+    
+    assert not result.success
+    assert "Invalid replacement format" in result.message
+
+@pytest.mark.asyncio
+async def test_run_command_line_tool(temp_dir: Path):
+    """Test RunCommandLineTool functionality"""
+    tool = RunCommandLineTool()
+    
+    # Create test files that might be "modified"
+    test_py_file = temp_dir / "test.py"
+    test_py_file.write_text("print('hello')")
+    test_txt_file = temp_dir / "test.txt"
+    test_txt_file.write_text("hello")
+    
+    # Mock the subprocess.run function to avoid actual command execution
+    with patch('subprocess.run') as mock_run:
+        # Set up mock return value for command success
+        mock_process = MagicMock()
+        mock_process.stdout = "Command output"
+        mock_process.stderr = ""
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+        
+        # Test basic command execution with no file changes
+        result = await tool.execute({
+            "command": "echo 'test'",
+            "working_dir": str(temp_dir)
+        })
+        
+        assert result.success
+        assert result.data["stdout"] == "Command output"
+        assert result.data["return_code"] == 0
+        assert result.data["modified_source_code"] is False
+        assert len(result.data["modified_files"]) == 0
+        
+        # Test with file modification detection
+        # We'll simulate a modified file by changing its modification time
+        # and using our internal mocks to override the detection mechanism
+        with patch.object(tool, '_get_file_mtimes') as mock_mtimes:
+            # First call returns initial mtimes
+            # Second call returns changed mtimes for test.py
+            mock_mtimes.side_effect = [
+                {test_py_file: 1000, test_txt_file: 2000},  # Initial
+                {test_py_file: 1001, test_txt_file: 2000},  # After (test.py changed)
+            ]
+            
+            result = await tool.execute({
+                "command": "modify file",
+                "working_dir": str(temp_dir),
+                "track_files": True
+            })
+            
+            assert result.success
+            assert "modified 1 source files" in result.message
+            assert result.data["modified_source_code"] is True
+            assert len(result.data["modified_files"]) == 1
+            assert "test.py" in result.data["modified_files"][0]
+        
+        # Test command failure
+        mock_process.returncode = 1
+        mock_process.stderr = "Command failed"
+        mock_run.return_value = mock_process
+        
+        result = await tool.execute({
+            "command": "failing_command",
+            "working_dir": str(temp_dir)
+        })
+        
+        assert not result.success
+        assert result.data["stderr"] == "Command failed"
+        assert result.data["return_code"] == 1
+        
+        # Test with invalid working directory
+        result = await tool.execute({
+            "command": "echo test",
+            "working_dir": "/nonexistent/path"
+        })
+        
+        assert not result.success
+        assert "not found" in result.message

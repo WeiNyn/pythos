@@ -6,7 +6,7 @@ from typing import List
 
 from .base import BaseTool
 from .file_operations import (ListFilesTool, ReadFileTool, SearchFilesTool,
-                              WriteFileTool)
+                              WriteFileTool, ReplaceInFileTool, RunCommandLineTool)
 
 
 def get_default_tools(config) -> List[BaseTool]:
@@ -19,7 +19,14 @@ def get_default_tools(config) -> List[BaseTool]:
     Returns:
         List of initialized tool instances
     """
-    return [ReadFileTool(), WriteFileTool(), SearchFilesTool(), ListFilesTool()]
+    return [
+        ReadFileTool(), 
+        WriteFileTool(), 
+        SearchFilesTool(), 
+        ListFilesTool(),
+        ReplaceInFileTool(),
+        RunCommandLineTool()
+    ]
 
 
 __all__ = [
@@ -29,4 +36,6 @@ __all__ = [
     "WriteFileTool",
     "SearchFilesTool",
     "ListFilesTool",
+    "ReplaceInFileTool",
+    "RunCommandLineTool",
 ]
