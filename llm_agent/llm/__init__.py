@@ -2,8 +2,6 @@
 LLM provider initialization and factory
 """
 
-from typing import Optional
-
 from ..config import AgentConfig
 from .base import BaseLLMProvider
 from .openai import OpenAIProvider

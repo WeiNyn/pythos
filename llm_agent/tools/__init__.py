@@ -5,8 +5,14 @@ Tool system for LLM Agent
 from typing import List
 
 from .base import BaseTool
-from .file_operations import (ListFilesTool, ReadFileTool, SearchFilesTool,
-                              WriteFileTool, ReplaceInFileTool, RunCommandLineTool)
+from .file_operations import (
+    ListFilesTool,
+    ReadFileTool,
+    ReplaceInFileTool,
+    RunCommandLineTool,
+    SearchFilesTool,
+    WriteFileTool,
+)
 
 
 def get_default_tools(config) -> List[BaseTool]:
@@ -20,12 +26,12 @@ def get_default_tools(config) -> List[BaseTool]:
         List of initialized tool instances
     """
     return [
-        ReadFileTool(), 
-        WriteFileTool(), 
-        SearchFilesTool(), 
+        ReadFileTool(),
+        WriteFileTool(),
+        SearchFilesTool(),
         ListFilesTool(),
         ReplaceInFileTool(),
-        RunCommandLineTool()
+        RunCommandLineTool(),
     ]
 
 

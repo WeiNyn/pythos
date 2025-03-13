@@ -1,0 +1,253 @@
+# Cline Project Rules
+
+This document provides detailed guidance for contributors to the Cline LLM Agent Framework.
+
+## Project Overview
+
+Cline is a Python framework for building LLM-powered agents with sophisticated debugging, state management, and tool execution capabilities. The framework is designed to be extensible, allowing developers to add new tools and LLM providers.
+
+## Architecture Diagrams
+
+### Component Relationships
+
+```mermaid
+graph TD
+    subgraph Core
+        Agent[Agent Class]
+        Config[AgentConfig]
+    end
+    
+    subgraph LLM Providers
+        LLMBase[BaseLLMProvider]
+        OpenAI[OpenAIProvider]
+        LLMBase --> OpenAI
+    end
+    
+    subgraph Tools
+        ToolBase[BaseTool]
+        FileOps[FileOperations]
+        ToolBase --> FileOps
+    end
+    
+    subgraph State Management
+        TaskState[TaskState]
+        Storage[StateStorage]
+        JsonStorage[JsonStateStorage]
+        SqliteStorage[SqliteStateStorage]
+        Storage --> JsonStorage
+        Storage --> SqliteStorage
+    end
+    
+    subgraph Debugging
+        DebugSession[DebugSession]
+        Breakpoints[BreakpointConfig]
+    end
+    
+    Agent --> LLMBase
+    Agent --> ToolBase
+    Agent --> TaskState
+    Agent --> Storage
+    Agent --> DebugSession
+    Config --> Agent
+```
+
+### Task Execution Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Agent
+    participant LLMProvider
+    participant Tools
+    participant StateStorage
+    
+    User->>Agent: Provide task description
+    Agent->>StateStorage: Initialize/load task state
+    loop Task Execution
+        Agent->>LLMProvider: Get next action
+        LLMProvider->>Agent: Return action (tool or completion)
+        
+        alt Tool Execution
+            Agent->>Tools: Execute tool with args
+            Tools->>Agent: Return tool result
+            Agent->>StateStorage: Update task state
+        else Task Completion
+            Agent->>StateStorage: Mark task as complete
+            Agent->>User: Return completion result
+        end
+    end
+```
+
+### State Management Flow
+
+```mermaid
+graph TD
+    TaskState[TaskState Object]
+    
+    subgraph Components
+        Messages[Messages]
+        ToolExecutions[Tool Executions]
+        Metadata[Metadata]
+        UserInputs[User Inputs]
+    end
+    
+    subgraph Storage
+        Memory[In-Memory State]
+        JsonStorage[JSON File Storage]
+        SqliteStorage[SQLite Database]
+    end
+    
+    subgraph Operations
+        Load[Load State]
+        Save[Save State]
+        Checkpoint[Create Checkpoint]
+        Restore[Restore Checkpoint]
+    end
+    
+    TaskState --> Messages
+    TaskState --> ToolExecutions
+    TaskState --> Metadata
+    TaskState --> UserInputs
+    
+    Load --> Memory
+    Memory --> Save
+    Save --> JsonStorage
+    Save --> SqliteStorage
+    Checkpoint --> Memory
+    Memory --> Restore
+```
+
+## Component Details
+
+### Agent (llm_agent/agent.py)
+
+The central coordinator for task execution flow. Responsibilities:
+
+- Initialize and configure the agent system
+- Register and manage available tools
+- Process user task inputs
+- Coordinate with LLM providers for action determination
+- Execute tools and handle results
+- Maintain and persist task state
+- Manage debugging sessions
+
+**Key Methods:**
+
+- `__init__(config: AgentConfig)`: Initialize agent with config
+- `register_tool(tool: BaseTool)`: Register a tool for use
+- `execute_task(task: str)`: Execute a task with the agent
+- `execute_tool(tool_name: str, args: Dict)`: Execute a specific tool
+- `create_checkpoint()`: Create a state checkpoint
+
+### LLM Providers (llm_agent/llm/)
+
+Abstract and concrete implementations for different LLM providers:
+
+- `BaseLLMProvider`: Abstract base class defining provider interface
+- `OpenAIProvider`: Implementation for OpenAI models
+
+**Extension Points:**
+
+- Create new provider class inheriting from `BaseLLMProvider`
+- Implement required methods for prompt formatting and action generation
+- Register new provider in `llm_agent/llm/__init__.py`
+
+### Tools (llm_agent/tools/)
+
+Modular capabilities that agents can use to perform actions:
+
+- `BaseTool`: Abstract base class for all tools
+- `FileOperations`: Tools for working with files and directories
+
+**Tool Implementation Requirements:**
+
+- Inherit from `BaseTool`
+- Implement `_execute(args: Dict[str, Any]) -> ToolResult`
+- Provide clear documentation and type hints for arguments
+- Return standardized `ToolResult` objects
+- Handle errors gracefully within the tool
+
+### State Management (llm_agent/state/)
+
+Components for tracking and persisting task state:
+
+- `TaskState`: Model representing the complete state of a task
+- `StateStorage`: Abstract storage interface
+- `JsonStateStorage`: Implementation using JSON files
+- `SqliteStateStorage`: Implementation using SQLite database
+
+**State Components:**
+
+- Messages (conversation history)
+- Tool executions (history of tools used)
+- User inputs (tracked separately from messages)
+- Metadata (task-specific information)
+- Checkpoints (snapshots of state at points in time)
+
+### Debugging (llm_agent/debug/)
+
+Components for debugging and tracing agent execution:
+
+- `DebugSession`: Manages the debug state and breakpoints
+- `BreakpointConfig`: Configuration for different types of breakpoints
+- `BreakpointType`: Enum of available breakpoint types (TOOL, ACTION, etc.)
+
+## Code Standards
+
+### Naming Conventions
+
+- **Classes**: PascalCase (`BaseTool`, `AgentConfig`)
+- **Functions/Methods**: snake_case (`execute_task`, `get_next_action`)
+- **Variables**: snake_case (`task_state`, `debug_session`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_RATE_LIMIT`, `DEFAULT_TIMEOUT`)
+- **Type Variables**: CamelCase with leading T (`TResult`, `TProvider`)
+- **Private Members**: Prefix with underscore (`_execute`, `_format_prompt`)
+
+### Documentation
+
+- All public classes, methods, and functions must include docstrings
+- Use Google-style docstrings format
+- Include type information in docstrings
+- Document parameters, return values, and raised exceptions
+- Add examples for complex functions
+
+Example:
+
+```python
+def execute_tool(self, tool_name: str, args: Dict[str, Any]) -> ToolResult:
+    """
+    Execute a tool with the given name and arguments.
+    
+    Args:
+        tool_name: Name of the tool to execute
+        args: Dictionary of arguments to pass to the tool
+        
+    Returns:
+        ToolResult containing the execution result
+        
+    Raises:
+        ToolNotFoundError: If the tool doesn't exist
+        ToolExecutionError: If the tool execution fails
+        
+    Example:
+        >>> result = agent.execute_tool("read_file", {"path": "example.txt"})
+        >>> print(result.success)
+        True
+    """
+```
+
+### Error Handling
+
+- Use custom exception classes for specific error types
+- Handle expected exceptions at appropriate levels
+- Include error context in exception messages
+- Log errors with appropriate severity
+- Allow for graceful degradation when possible
+
+### Async Programming
+
+- Use `async`/`await` consistently throughout the codebase
+- Avoid mixing synchronous and asynchronous code
+- Implement proper cancellation handling
+- Use asyncio primitives for coordination
+- Consider performance implications of async operations

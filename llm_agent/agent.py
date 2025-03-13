@@ -258,7 +258,6 @@ class Agent:
                         BreakpointType.STATE, {"state": self.state.dict()}
                     )
 
-
             # Handle max iterations reached
             if iteration >= max_iterations:
                 msg = f"Task exceeded maximum iterations ({max_iterations})"

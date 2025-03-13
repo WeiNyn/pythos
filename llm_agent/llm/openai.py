@@ -20,9 +20,16 @@ from .rate_limiter import RateLimiter
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-based LLM provider implementation"""
 
-    def __init__(self, api_key: str, rpm: int = 10):
-        """Initialize with API key and rate limit"""
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-thinking-exp-01-21", rpm: int = 10):
+        """Initialize with API key and rate limit
+
+        Args:
+            api_key: OpenAI API key
+            model: Model to use for completions
+            rpm: Rate limit in requests per minute
+        """
         self.api_key = api_key
+        self.model = model
         openai.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
         openai.api_key = self.api_key
         self.tools: Dict[str, BaseTool] = {}
@@ -51,9 +58,7 @@ class OpenAIProvider(BaseLLMProvider):
         formatted = []
         for task in related_tasks:
             status = "completed" if task["completed"] else "in progress"
-            formatted.append(
-                f"- {task['task']} (Relevance: {task['similarity']:.2f}, Status: {status})"
-            )
+            formatted.append(f"- {task['task']} (Relevance: {task['similarity']:.2f}, Status: {status})")
         return "\n".join(formatted)
 
     def _format_context(self, context: Dict[str, Any]) -> str:
@@ -68,9 +73,7 @@ class OpenAIProvider(BaseLLMProvider):
             formatted.append(f"# {key}:\n{value}")
         return "\n\n".join(formatted)
 
-    async def get_next_action(
-        self, task: str, state: TaskState, available_tools: List[str]
-    ) -> LLMAction:
+    async def get_next_action(self, task: str, state: TaskState, available_tools: List[str]) -> LLMAction:
         """Get next action from OpenAI"""
         prompt = await self.format_prompt(task, state, available_tools)
 
@@ -79,7 +82,7 @@ class OpenAIProvider(BaseLLMProvider):
             await self.rate_limiter.acquire()
 
             api_response = openai.chat.completions.create(
-                model="gemini-2.0-flash-thinking-exp-01-21",  # Or your preferred model
+                model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
             )
@@ -106,9 +109,7 @@ class OpenAIProvider(BaseLLMProvider):
 
         except Exception as e:
             print(e)
-            return LLMAction(
-                thoughts=f"Error in OpenAI API call: {str(e)}", is_complete=False
-            )
+            return LLMAction(thoughts=f"Error in OpenAI API call: {str(e)}", is_complete=False)
 
     def _extract_response_xml(self, text: str) -> Union[str, None]:
         """Extract response XML from text"""
@@ -120,10 +121,10 @@ class OpenAIProvider(BaseLLMProvider):
     def _parse_args_xml(self, args_elem: ET.Element) -> Dict[str, Any]:
         """Parse XML args element into a dictionary"""
         args_dict = {}
-        for param in args_elem.findall('*'):
+        for param in args_elem.findall("*"):
             args_dict[param.tag] = param.text.strip() if param.text else ""
         return args_dict
-        
+
     def _get_tool_specific_response_format(self, tool_name: str) -> Union[str, None]:
         """Get a tool-specific response format if available"""
         tool = self.tools.get(tool_name)
@@ -137,9 +138,7 @@ class OpenAIProvider(BaseLLMProvider):
             # Extract response XML
             xml_content = self._extract_response_xml(response)
             if not xml_content:
-                return LLMAction(
-                    thoughts="Could not find response XML", is_complete=False
-                )
+                return LLMAction(thoughts="Could not find response XML", is_complete=False)
 
             # Parse XML structure
             xml = f"<response>{xml_content}</response>"
@@ -147,26 +146,17 @@ class OpenAIProvider(BaseLLMProvider):
 
             # Get required elements
             thoughts = root.find("thoughts")
-            thoughts_text = (
-                thoughts.text.strip()
-                if thoughts is not None
-                else "No thoughts provided"
-            )
+            thoughts_text = thoughts.text.strip() if thoughts is not None else "No thoughts provided"
 
             # Check if this is a completion response
             is_complete_elem = root.find("is_complete")
-            is_complete = (
-                is_complete_elem is not None
-                and is_complete_elem.text.strip().lower() == "true"
-            )
+            is_complete = is_complete_elem is not None and is_complete_elem.text.strip().lower() == "true"
 
             if is_complete:
                 # Look for result in r tag (standard) or result tag
                 result_elem = root.find("r") or root.find("result")
                 result = result_elem.text.strip() if result_elem is not None else None
-                return LLMAction(
-                    thoughts=thoughts_text, is_complete=True, result=result
-                )
+                return LLMAction(thoughts=thoughts_text, is_complete=True, result=result)
 
             # Get tool execution details
             tool = root.find("tool")
@@ -176,7 +166,7 @@ class OpenAIProvider(BaseLLMProvider):
                 return LLMAction(thoughts=thoughts_text, is_complete=False)
 
             tool_name = tool.text.strip()
-            
+
             # Parse the tool args as XML
             args_dict = self._parse_args_xml(args)
 
@@ -193,18 +183,12 @@ class OpenAIProvider(BaseLLMProvider):
                 is_complete=False,
             )
         except Exception as e:
-            return LLMAction(
-                thoughts=f"Error parsing response: {str(e)}", is_complete=False
-            )
+            return LLMAction(thoughts=f"Error parsing response: {str(e)}", is_complete=False)
 
-    async def format_prompt(
-        self, task: str, state: TaskState, available_tools: List[str]
-    ) -> str:
+    async def format_prompt(self, task: str, state: TaskState, available_tools: List[str]) -> str:
         """Format prompt for OpenAI with memory integration"""
         # Get base system prompt
-        base_prompt = get_system_prompt(
-            task, [self.tools[name] for name in available_tools], str(self.working_dir)
-        )
+        base_prompt = get_system_prompt(task, [self.tools[name] for name in available_tools], str(self.working_dir))
 
         # Add memory components
         memory_sections = []
@@ -230,12 +214,12 @@ class OpenAIProvider(BaseLLMProvider):
         # Add recent tool executions
         if state.tool_executions:
             recent_tools = []
-            
+
             # Get details for the most recent tools
             for te in state.get_recent_tools():
                 # Format arguments as XML
                 args_xml = "\n".join([f"    <{k}>{v}</{k}>" for k, v in te.args.items()])
-                
+
                 # Format result data structure as XML
                 if hasattr(te.result, "model_dump"):
                     # For newer Pydantic versions
@@ -243,11 +227,9 @@ class OpenAIProvider(BaseLLMProvider):
                 else:
                     # For older Pydantic versions
                     result_data = te.result.dict()
-                
-                result_xml = "\n".join(
-                    [f"    <{k}>{v}</{k}>" for k, v in result_data.items()]
-                )
-                
+
+                result_xml = "\n".join([f"    <{k}>{v}</{k}>" for k, v in result_data.items()])
+
                 # Add formatted tool execution to the list
                 recent_tools.append(f"""
 Tool: {te.tool_name}

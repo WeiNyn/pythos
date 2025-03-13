@@ -3,11 +3,9 @@ File operation tools implementation
 """
 
 import os
-import re
 import subprocess
-import shutil
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Set, Optional
+from typing import Any, Dict, List, Set, Tuple
 
 from .base import BaseTool, ToolResult
 
@@ -36,7 +34,7 @@ class ReadFileTool(BaseTool):
                     success=False, message=f"File not found: {path}", data=None
                 )
 
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
             return ToolResult(
@@ -47,7 +45,7 @@ class ReadFileTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error reading file: {str(e)}", data=None
             )
-    
+
     def get_example(self) -> str:
         """Get example usage for ReadFileTool"""
         return """
@@ -56,7 +54,7 @@ class ReadFileTool(BaseTool):
     <path>src/main.py</path>
 </args>
 </ReadFileTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for ReadFileTool"""
         return [("path", "Path to the file to read (relative or absolute)")]
@@ -102,7 +100,7 @@ class WriteFileTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error writing file: {str(e)}", data=None
             )
-            
+
     def get_example(self) -> str:
         """Get example usage for WriteFileTool"""
         return """
@@ -113,13 +111,16 @@ class WriteFileTool(BaseTool):
     <create_dirs>true</create_dirs>
 </args>
 </WriteFileTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for WriteFileTool"""
         return [
             ("path", "Path to write the file to (relative or absolute)"),
             ("content", "Content to write to the file"),
-            ("create_dirs", "Create parent directories if they don't exist (default: true)")
+            (
+                "create_dirs",
+                "Create parent directories if they don't exist (default: true)",
+            ),
         ]
 
 
@@ -171,7 +172,7 @@ class SearchFilesTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error searching files: {str(e)}", data=None
             )
-            
+
     def get_example(self) -> str:
         """Get example usage for SearchFilesTool"""
         return """
@@ -182,13 +183,13 @@ class SearchFilesTool(BaseTool):
     <recursive>true</recursive>
 </args>
 </SearchFilesTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for SearchFilesTool"""
         return [
             ("directory", "Directory to search in (default: current directory)"),
             ("pattern", "Glob pattern to match files against (e.g., *.py)"),
-            ("recursive", "Search in subdirectories (default: true)")
+            ("recursive", "Search in subdirectories (default: true)"),
         ]
 
 
@@ -240,7 +241,7 @@ class ListFilesTool(BaseTool):
             return ToolResult(
                 success=False, message=f"Error listing files: {str(e)}", data=None
             )
-            
+
     def get_example(self) -> str:
         """Get example usage for ListFilesTool"""
         return """
@@ -250,22 +251,25 @@ class ListFilesTool(BaseTool):
     <recursive>false</recursive>
 </args>
 </ListFilesTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for ListFilesTool"""
         return [
             ("directory", "Directory to list files from (default: current directory)"),
-            ("recursive", "List files recursively including subdirectories (default: false)")
+            (
+                "recursive",
+                "List files recursively including subdirectories (default: false)",
+            ),
         ]
 
 
 class ReplaceInFileTool(BaseTool):
     """Tool to make targeted replacements in a file using git-like comparison markers"""
-    
+
     async def _execute(self, args: Dict[str, Any]) -> ToolResult:
         """
         Replace content in a file using git-like comparison markers
-        
+
         Args:
             path: Path to the file to modify
             content: The replacement content in git-like format with markers:
@@ -275,48 +279,48 @@ class ReplaceInFileTool(BaseTool):
                      [new content to replace with]
                      >>>>>>> REPLACE
             count: Maximum number of replacements to make (default: 0 for all)
-        
+
         Returns:
             ToolResult indicating success/failure and number of replacements made
         """
         path = args.get("path")
         content = args.get("content")
         count = int(args.get("count", 0))  # 0 means replace all occurrences
-        
+
         if not path or not content:
             return ToolResult(
-                success=False, 
-                message="Required parameters: path and content", 
-                data=None
+                success=False,
+                message="Required parameters: path and content",
+                data=None,
             )
-        
+
         try:
             file_path = Path(path)
             if not file_path.exists():
                 return ToolResult(
-                    success=False, 
-                    message=f"File not found: {path}", 
-                    data=None
+                    success=False, message=f"File not found: {path}", data=None
                 )
-            
+
             # Read the original content
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, encoding="utf-8") as f:
                 original_content = f.read()
-            
+
             # Parse the replacement format to extract search and replace content
             import re
+
             pattern = r"<<<<<<< SEARCH\n(.*?)\n=======\n(.*?)\n>>>>>>> REPLACE"
             matches = re.findall(pattern, content, re.DOTALL)
-            
+
             if not matches:
                 return ToolResult(
                     success=False,
-                    message="Invalid replacement format. Use git-like comparison markers.",
-                    data=None
+                    message="Invalid replacement format. "
+                            "Use git-like comparison markers.",
+                    data=None,
                 )
-            
+
             search_text, replacement_text = matches[0]
-            
+
             # Perform the replacement
             if count > 0:
                 # Split by search_text and join with replacement_text for limited count
@@ -326,40 +330,45 @@ class ReplaceInFileTool(BaseTool):
                     return ToolResult(
                         success=True,
                         message=f"Search text not found in file: {path}",
-                        data={"replacements_made": 0}
+                        data={"replacements_made": 0},
                     )
-                
+
                 # Perform the replacement for the specified count
-                new_content = replacement_text.join(parts[:count]) + replacement_text + search_text.join(parts[count:])
+                new_content = (
+                    replacement_text.join(parts[:count])
+                    + replacement_text
+                    + search_text.join(parts[count:])
+                )
                 num_replacements = min(count, len(parts) - 1)
             else:
                 # Replace all occurrences
                 new_content = original_content.replace(search_text, replacement_text)
                 num_replacements = original_content.count(search_text)
-            
+
             if num_replacements == 0:
                 return ToolResult(
                     success=True,
                     message=f"Search text not found in file: {path}",
-                    data={"replacements_made": 0}
+                    data={"replacements_made": 0},
                 )
-            
+
             # Write the modified content back
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(new_content)
-            
+
             return ToolResult(
-                success=True, 
-                message=f"Successfully replaced {num_replacements} occurrences in file: {path}", 
-                data={"replacements_made": num_replacements}
+                success=True,
+                message=f"Successfully replaced {num_replacements} occurrences "
+                        f"in file: {path}",
+                data={"replacements_made": num_replacements},
             )
         except Exception as e:
             return ToolResult(
-                success=False, 
-                message=f"Error replacing content in file: {str(e)}", 
-                data=None
+                success=False,
+                message=f"Error replacing content in file: {str(e)}",
+                data=None,
             )
-    
+
     def get_example(self) -> str:
         """Get example usage for ReplaceInFileTool"""
         return """
@@ -376,47 +385,65 @@ def new_function():
     <count>1</count>
 </args>
 </ReplaceInFileTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for ReplaceInFileTool"""
         return [
             ("path", "Path to the file to modify (relative or absolute)"),
-            ("content", "Replacement content using git-like comparison markers:\n<<<<<<< SEARCH\n[exact content to find]\n=======\n[new content to replace with]\n>>>>>>> REPLACE"),
-            ("count", "Maximum number of replacements to make (default: 0 for all matches)")
+            (
+                "content",
+                "Replacement content using git-like comparison markers:\n"
+                "<<<<<<< SEARCH\n"
+                "[exact content to find]\n"
+                "=======\n"
+                "[new content to replace with]\n"
+                ">>>>>>> REPLACE",
+            ),
+            (
+                "count",
+                "Maximum number of replacements to make (default: 0 for all matches)",
+            ),
         ]
 
 
 class RunCommandLineTool(BaseTool):
     """Tool to run command line operations and detect source code modifications"""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         """Initialize tool with file tracking capability"""
         super().__init__()
-        self.source_extensions = {'.py', '.js', '.ts', '.html', '.css', '.md', '.json', '.xml', '.yaml', '.yml'}
-    
+        self.source_extensions = {
+            ".py",
+            ".js",
+            ".ts",
+            ".html",
+            ".css",
+            ".md",
+            ".json",
+            ".xml",
+            ".yaml",
+            ".yml",
+        }
+
     async def _execute(self, args: Dict[str, Any]) -> ToolResult:
         """
         Run a command line operation and detect if source code was modified
-        
+
         Args:
             command: Command to execute
             working_dir: Working directory for the command (default: current dir)
             track_files: Whether to track file modifications (default: true)
-            
+
         Returns:
             ToolResult with command output and source modification status
         """
         command = args.get("command")
         working_dir = args.get("working_dir", ".")
         track_files = args.get("track_files", True)
-        
+
         if not command:
-            return ToolResult(
-                success=False,
-                message="Command is required",
-                data=None
-            )
-        
+            return ToolResult(success=False, message="Command is required", data=None)
+
         try:
             # Convert working_dir to Path object
             work_dir = Path(working_dir)
@@ -424,71 +451,69 @@ class RunCommandLineTool(BaseTool):
                 return ToolResult(
                     success=False,
                     message=f"Working directory not found: {working_dir}",
-                    data=None
+                    data=None,
                 )
-            
+
             # Snapshot files before command execution if tracking is enabled
             files_before = self._get_source_files(work_dir) if track_files else set()
-            modified_times_before = self._get_file_mtimes(files_before) if track_files else {}
-            
+            modified_times_before = (
+                self._get_file_mtimes(files_before) if track_files else {}
+            )
+
             # Execute the command
             process = subprocess.run(
-                command,
-                shell=True,
-                cwd=str(work_dir),
-                capture_output=True,
-                text=True
+                command, shell=True, cwd=str(work_dir), capture_output=True, text=True
             )
-            
+
             # Get command output
             stdout = process.stdout
             stderr = process.stderr
             return_code = process.returncode
-            
+
             # Check for modified files if tracking is enabled
             modified_files = []
             if track_files:
                 files_after = self._get_source_files(work_dir)
                 modified_times_after = self._get_file_mtimes(files_after)
-                
+
                 # Detect new files
                 new_files = files_after - files_before
                 modified_files.extend([str(f.relative_to(work_dir)) for f in new_files])
-                
+
                 # Detect modified files
                 for file in files_before & files_after:
-                    if modified_times_after.get(file) != modified_times_before.get(file):
+                    if modified_times_after.get(file) != modified_times_before.get(
+                        file
+                    ):
                         modified_files.append(str(file.relative_to(work_dir)))
-            
+
             # Prepare result data
             result_data = {
                 "stdout": stdout,
                 "stderr": stderr,
                 "return_code": return_code,
                 "modified_source_code": bool(modified_files),
-                "modified_files": sorted(modified_files) if modified_files else []
+                "modified_files": sorted(modified_files) if modified_files else [],
             }
-            
+
             if return_code == 0:
-                result_message = f"Command executed successfully"
+                result_message = "Command executed successfully"
                 if modified_files:
                     result_message += f", modified {len(modified_files)} source files"
             else:
                 result_message = f"Command failed with exit code {return_code}"
-            
+
             return ToolResult(
-                success=return_code == 0,
-                message=result_message,
-                data=result_data
+                success=return_code == 0, message=result_message, data=result_data
             )
-            
+
         except Exception as e:
             return ToolResult(
                 success=False,
                 message=f"Error running command: {str(e)}",
-                data={"error": str(e)}
+                data={"error": str(e)},
             )
-    
+
     def _get_source_files(self, directory: Path) -> Set[Path]:
         """Get all source code files in the directory"""
         result = set()
@@ -498,7 +523,7 @@ class RunCommandLineTool(BaseTool):
                 if file_path.suffix.lower() in self.source_extensions:
                     result.add(file_path)
         return result
-    
+
     def _get_file_mtimes(self, files: Set[Path]) -> Dict[Path, float]:
         """Get modification times for a set of files"""
         result = {}
@@ -506,7 +531,7 @@ class RunCommandLineTool(BaseTool):
             if file.exists():
                 result[file] = file.stat().st_mtime
         return result
-    
+
     def get_example(self) -> str:
         """Get example usage for RunCommandLineTool"""
         return """
@@ -517,11 +542,14 @@ class RunCommandLineTool(BaseTool):
     <track_files>true</track_files>
 </args>
 </RunCommandLineTool>"""
-    
+
     def get_parameters_description(self) -> List[Tuple[str, str]]:
         """Get parameter descriptions for RunCommandLineTool"""
         return [
             ("command", "The command line operation to execute"),
-            ("working_dir", "Working directory for the command (default: current directory)"),
-            ("track_files", "Whether to track file modifications (default: true)")
+            (
+                "working_dir",
+                "Working directory for the command (default: current directory)",
+            ),
+            ("track_files", "Whether to track file modifications (default: true)"),
         ]

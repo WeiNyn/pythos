@@ -25,7 +25,9 @@ def get_system_prompt(task: str, tools: List[BaseTool], working_dir: str) -> str
 
 TOOL USE
 
-You have access to tools that are executed upon approval. Use one tool per message and wait for its result before proceeding. Tool usage must follow XML format:
+You have access to tools that are executed upon approval.
+Use one tool per message and wait for its result before proceeding.
+Tool usage must follow XML format:
 
 <tool_name>
 <param1>value1</param1>
@@ -72,10 +74,10 @@ For task completion:
             doc += "\nParameters:\n"
             for param_name, param_desc in params:
                 doc += f"- `{param_name}`: {param_desc}\n"
-        
+
         # Add example from the tool itself
         doc += f"\nExample:\n{tool.get_example()}\n"
-        
+
         tools_detail.append(doc)
 
     # Combine all sections

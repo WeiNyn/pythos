@@ -105,9 +105,9 @@ async def test_task_execution_with_tool(mock_agent):
 async def test_task_execution_failure(mock_agent):
     """Test task execution failure handling"""
     # Mock LLM to raise an exception
-    mock_agent.llm.get_next_action = AsyncMock(side_effect=Exception("Test error"))
+    mock_agent.llm.get_next_action = AsyncMock(side_effect=ValueError("Test error"))
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         await mock_agent.execute_task("Test task")
 
     assert mock_agent.state.is_failed

@@ -3,7 +3,6 @@ State persistence and checkpoint system
 """
 
 import json
-import shutil
 import sqlite3
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -366,10 +365,10 @@ class SqliteStateStorage(StateStorage):
                 for msg in state["messages"]:
                     conn.execute(
                         """
-                        INSERT INTO messages 
+                        INSERT INTO messages
                         (task_id, role, content, timestamp, metadata)
                         VALUES (?, ?, ?, ?, ?)
-                    """,
+                        """,
                         (
                             task_id,
                             msg["role"],

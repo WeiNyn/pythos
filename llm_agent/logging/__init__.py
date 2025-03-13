@@ -8,7 +8,7 @@ import logging.handlers
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 import termcolor
 from pydantic import BaseModel
@@ -225,7 +225,8 @@ class AgentLogger:
     def format_section(self, title: str, content: str) -> str:
         """Format a section with separators and title"""
         if self.config.show_separators:
-            return f"\n{SUBSECTION_SEPARATOR}\n{title}\n{content}\n{SUBSECTION_SEPARATOR}\n"
+            return (f"\n{SUBSECTION_SEPARATOR}\n{title}\n{content}\n"
+                    f"{SUBSECTION_SEPARATOR}\n")
         return f"\n{title}\n{content}"
 
     def debug(self, msg: str, **kwargs) -> None:
