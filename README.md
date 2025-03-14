@@ -15,6 +15,8 @@ A powerful Python framework for building and integrating LLM-powered agent syste
 - **Debug Capabilities**: Breakpoints, step-by-step execution, and rich debugging
 - **Logging**: Configurable logging system for tracking agent activities
 - **Checkpoint System**: Create and manage system checkpoints for task progress
+- **YAML Configuration**: Easy-to-use YAML-based configuration system
+- **Environment Variables**: Secure handling of sensitive data
 
 ## Architecture
 
@@ -91,7 +93,27 @@ llm_agent/
    ```
 
 3. **Environment Configuration**:
-   - Copy `.env.example` to `.env` and fill in your API keys
+   - Copy `.env.example` to `.env` and fill in your API keys:
+     ```bash
+     cp .env.example .env
+     ```
+   - Edit `.env` with your actual API keys and settings:
+     ```
+     OPENAI_API_KEY=your-api-key-here
+     OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+     ```
+
+4. **Configuration**:
+   - The project uses YAML-based configuration
+   - Default configuration is in `config.yaml`
+   - Environment variables can be referenced using `${VAR_NAME}` syntax
+   - Example configuration:
+     ```yaml
+     llm_provider: "openai"
+     api_key: ${OPENAI_API_KEY}
+     base_url: ${OPENAI_BASE_URL}
+     working_directory: "."
+     ```
 
 ### Creating New Components
 
@@ -143,26 +165,22 @@ python -m pytest
 
 ```python
 import asyncio
-import os
 from pathlib import Path
 from llm_agent.agent import Agent
 from llm_agent.config import AgentConfig
 
 async def run_task():
-    config = AgentConfig(
-        llm_provider="openai",
-        api_key=os.environ["OPENAI_API_KEY"],
-        working_directory=Path.cwd(),
-    )
+    # Load configuration from YAML
+    config = AgentConfig.from_yaml("config.yaml")
     
+    # Create agent instance
     agent = Agent(config)
     
-    # Register tools
-    from llm_agent.tools import register_default_tools
-    register_default_tools(agent)
-    
     # Execute task
-    await agent.execute_task("Create a Python script that calculates prime numbers")
+    result = await agent.execute_task(
+        "Create a Python script that calculates prime numbers"
+    )
+    print(f"Task completed: {result}")
 
 if __name__ == "__main__":
     asyncio.run(run_task())

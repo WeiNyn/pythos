@@ -15,6 +15,7 @@ graph TD
     subgraph Core
         Agent[Agent Class]
         Config[AgentConfig]
+        YAMLConfig[YAML Config]
     end
     
     subgraph LLM Providers
@@ -43,12 +44,18 @@ graph TD
         Breakpoints[BreakpointConfig]
     end
     
+    subgraph Configuration
+        EnvVars[Environment Variables]
+        YAMLConfig --> EnvVars
+    end
+    
     Agent --> LLMBase
     Agent --> ToolBase
     Agent --> TaskState
     Agent --> Storage
     Agent --> DebugSession
     Config --> Agent
+    YAMLConfig --> Config
 ```
 
 ### Task Execution Flow
@@ -60,7 +67,11 @@ sequenceDiagram
     participant LLMProvider
     participant Tools
     participant StateStorage
+    participant Config
     
+    User->>Config: Load YAML config
+    Config->>Config: Load env vars
+    Config->>Agent: Initialize with config
     User->>Agent: Provide task description
     Agent->>StateStorage: Initialize/load task state
     loop Task Execution
@@ -139,6 +150,28 @@ The central coordinator for task execution flow. Responsibilities:
 - `execute_tool(tool_name: str, args: Dict)`: Execute a specific tool
 - `create_checkpoint()`: Create a state checkpoint
 
+### Configuration (llm_agent/config.py)
+
+Handles configuration management and validation:
+
+- `AgentConfig`: Main configuration model
+- `DebugSettings`: Debug-specific settings
+- `StateStorageConfig`: State storage configuration
+- `LogConfig`: Logging configuration
+
+**Key Features:**
+
+- YAML-based configuration loading
+- Environment variable substitution
+- Path validation and conversion
+- Nested configuration objects
+- Type validation and conversion
+
+**Example Usage:**
+```python
+config = AgentConfig.from_yaml("config.yaml")
+```
+
 ### LLM Providers (llm_agent/llm/)
 
 Abstract and concrete implementations for different LLM providers:
@@ -151,6 +184,10 @@ Abstract and concrete implementations for different LLM providers:
 - Create new provider class inheriting from `BaseLLMProvider`
 - Implement required methods for prompt formatting and action generation
 - Register new provider in `llm_agent/llm/__init__.py`
+
+**Configuration:**
+- API keys and base URLs are loaded from environment variables
+- Rate limiting and model selection via YAML config
 
 ### Tools (llm_agent/tools/)
 
@@ -251,3 +288,20 @@ def execute_tool(self, tool_name: str, args: Dict[str, Any]) -> ToolResult:
 - Implement proper cancellation handling
 - Use asyncio primitives for coordination
 - Consider performance implications of async operations
+
+### Configuration Management
+
+- Use YAML for configuration files
+- Support environment variable substitution
+- Validate configuration values
+- Provide sensible defaults
+- Document all configuration options
+- Handle path resolution properly
+
+### Environment Variables
+
+- Use `.env` file for sensitive data
+- Support environment variable substitution in YAML
+- Validate required environment variables
+- Provide clear error messages for missing variables
+- Document all required environment variables
