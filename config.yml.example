@@ -1,0 +1,45 @@
+# Cline Agent Configuration
+
+# LLM Provider Settings
+llm_provider: "openai"  # Currently supports: openai
+api_key: "${OPENAI_API_KEY}"  # Will be loaded from environment variable
+base_url: "${OPENAI_BASE_URL}"  # Optional, defaults to OpenAI's API URL
+
+# Working Directory
+working_directory: "."  # Path to working directory
+
+# State Storage Configuration
+state_storage:
+  type: "json"  # Options: json, sqlite
+  path: ".llm_agent/state"  # Path to store state files
+  auto_checkpoint: true  # Enable automatic checkpointing
+  max_checkpoints: 10  # Maximum number of checkpoints to keep
+
+# Rate Limiting
+rate_limit: 9  # Maximum requests per minute
+
+# Tool Approval Settings
+auto_approve_tools: false  # Whether to auto-approve tool executions
+max_consecutive_auto_approvals: 5  # Maximum number of consecutive auto-approvals
+
+# Debug Settings
+debug:
+  enabled: true  # Enable debug mode
+  step_by_step: false  # Enable step-by-step execution
+  breakpoints:
+    tool_execution:
+      type: "tool"  # Breakpoint types: tool, llm
+      enabled: true
+    llm_execution:
+      type: "llm"
+      enabled: false
+
+# Logging Configuration
+logging:
+  level: "INFO"  # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  file_path: ".llm_agent/logs/agent.log"  # Path to log file
+  console_logging: true  # Enable console logging
+  file_logging: true  # Enable file logging
+  use_colors: true  # Enable colored output
+  show_separators: true  # Show visual separators in logs
+  format: "%(asctime)s - %(name)s - %(levelname)s\n%(message)s"  # Log format 

@@ -18,6 +18,7 @@ A powerful Python framework for building and integrating LLM-powered agent syste
 - **YAML Configuration**: Easy-to-use YAML-based configuration system
 - **Environment Variables**: Secure handling of sensitive data
 - **User Approval System**: Flexible callback system for tool execution approval
+- **Rich CLI**: Interactive command-line interface with beautiful formatting
 
 ## Architecture
 
@@ -234,4 +235,107 @@ The framework includes a flexible callback system for handling user approvals of
 
 ## License
 
-MIT License - see the LICENSE file for details. 
+MIT License - see the LICENSE file for details.
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+## Quick Start
+
+1. Create a configuration file (e.g., `config.yml`) based on `config.yml.example`
+2. Set up your environment variables:
+   ```bash
+   export OPENAI_API_KEY=your_api_key
+   export OPENAI_BASE_URL=your_base_url  # Optional
+   ```
+3. Run the CLI:
+   ```bash
+   python cline.py
+   ```
+
+## CLI Usage
+
+The CLI provides an interactive interface for executing tasks with your agent:
+
+```bash
+# Run with default config.yml
+python cline.py
+
+# Run with custom config file
+python cline.py --config path/to/config.yml
+```
+
+### Features
+
+- **Interactive Task Input**: Enter tasks with multiline support
+- **Task History**: View recent tasks and their status
+- **Rich Output**: Beautiful formatting with colors and panels
+- **Error Handling**: Graceful error handling with retry options
+- **Progress Tracking**: Visual feedback during task execution
+
+## Configuration
+
+The framework uses YAML configuration files. See `config.yml.example` for all available options:
+
+```yaml
+# Example configuration
+llm_provider: "openai"
+api_key: "${OPENAI_API_KEY}"
+working_directory: "."
+
+state_storage:
+  type: "json"
+  path: ".llm_agent/state"
+
+debug:
+  enabled: true
+  step_by_step: false
+```
+
+## Development
+
+### Project Structure
+
+```
+cline/
+├── cline.py              # CLI application
+├── config.yml.example    # Example configuration
+├── llm_agent/
+│   ├── agent.py         # Core agent implementation
+│   ├── config.py        # Configuration management
+│   ├── debug.py         # Debugging system
+│   ├── llm/             # LLM provider implementations
+│   ├── logging/         # Logging system
+│   ├── state/           # State management
+│   └── tools/           # Tool implementations
+└── examples/            # Example scripts
+```
+
+### Adding New Tools
+
+1. Create a new tool class in `llm_agent/tools/`
+2. Inherit from `BaseTool`
+3. Implement required methods
+4. Register the tool in `get_default_tools()`
+
+### Adding New LLM Providers
+
+1. Create a new provider class in `llm_agent/llm/`
+2. Inherit from `BaseLLMProvider`
+3. Implement required methods
+4. Register the provider in `create_llm_provider()`
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+MIT License - see LICENSE file for details 

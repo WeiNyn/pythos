@@ -98,7 +98,6 @@ class OpenAIProvider(BaseLLMProvider):
                         "wait_time": self.rate_limiter.get_wait_time(),
                     },
                 )
-
             action = await self.parse_response(api_response.choices[0].message.content)
             return action
 

@@ -196,7 +196,7 @@ class Agent:
                             "iterations": iteration,
                         },
                     )
-                    return action.result
+                    return action.result or action.thoughts
 
                 # Execute tool if specified
                 if action.tool_name:
