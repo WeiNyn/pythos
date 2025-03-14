@@ -28,6 +28,7 @@ class AgentConfig(BaseModel):
 
     llm_provider: str
     api_key: str
+    base_url: Optional[str] = None
     working_directory: Path
     state_storage: StateStorageConfig = StateStorageConfig()
     rate_limit: int = 60
@@ -102,11 +103,12 @@ class AgentConfig(BaseModel):
             config_dict = yaml.safe_load(f)
 
         # Handle environment variable substitution
-        if isinstance(config_dict.get("api_key"), str) and config_dict["api_key"].startswith("${"):
-            env_var = config_dict["api_key"][2:-1]  # Remove ${ and }
-            config_dict["api_key"] = os.environ.get(env_var)
-            if not config_dict["api_key"]:
-                raise ValueError(f"Environment variable {env_var} not found")
+        for key in ["api_key", "base_url"]:
+            if isinstance(config_dict.get(key), str) and config_dict[key].startswith("${"):
+                env_var = config_dict[key][2:-1]  # Remove ${ and }
+                config_dict[key] = os.environ.get(env_var)
+                if key == "api_key" and not config_dict[key]:
+                    raise ValueError(f"Environment variable {env_var} not found")
 
         # Convert working directory to Path
         if isinstance(config_dict.get("working_directory"), str):

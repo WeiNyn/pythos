@@ -3,6 +3,7 @@
 # Core Settings
 llm_provider: "openai"  # Supported: openai, anthropic
 api_key: ${OPENAI_API_KEY}  # Will be loaded from environment variable
+base_url: ${OPENAI_BASE_URL}  # Will be loaded from environment variable
 working_directory: "."  # Relative to where the script is run
 
 # Rate Limiting

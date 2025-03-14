@@ -20,17 +20,19 @@ from .rate_limiter import RateLimiter
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-based LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-thinking-exp-01-21", rpm: int = 10):
+    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-thinking-exp-01-21", rpm: int = 10, base_url: str = None):
         """Initialize with API key and rate limit
 
         Args:
             api_key: OpenAI API key
             model: Model to use for completions
             rpm: Rate limit in requests per minute
+            base_url: Optional base URL for the API
         """
         self.api_key = api_key
         self.model = model
-        openai.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        if base_url:
+            openai.base_url = base_url
         openai.api_key = self.api_key
         self.tools: Dict[str, BaseTool] = {}
         self.rate_limiter = RateLimiter(rpm)
