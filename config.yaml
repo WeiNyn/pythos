@@ -1,0 +1,46 @@
+# LLM Agent Configuration
+
+# Core Settings
+llm_provider: "openai"  # Supported: openai, anthropic
+api_key: ${OPENAI_API_KEY}  # Will be loaded from environment variable
+working_directory: "."  # Relative to where the script is run
+
+# Rate Limiting
+rate_limit: 9  # Requests per minute
+auto_approve_tools: true
+max_consecutive_auto_approvals: 5
+
+# State Storage Configuration
+state_storage:
+  type: "json"  # Supported: json, sqlite
+  path: ".llm_agent/state"  # Relative to working_directory
+  auto_checkpoint: true
+  max_checkpoints: 10
+
+# Logging Configuration
+logging:
+  level: "DEBUG"
+  file_path: ".llm_agent/logs/agent.log"
+  rotation_size_mb: 10
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s\n%(message)s"
+  console_logging: true
+  file_logging: true
+  use_colors: true
+  show_separators: true
+
+# Debug Settings
+debug:
+  enabled: true
+  step_by_step: false
+  breakpoints:
+    tool_execution:
+      type: "tool"
+      enabled: true
+      condition: null  # Optional Python expression to evaluate
+  logging:
+    enable_tool_logging: true
+    enable_rate_limiter_logging: true
+    enable_memory_logging: true
+    enable_separators: true
+    log_level: "DEBUG" 
