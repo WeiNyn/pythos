@@ -99,18 +99,10 @@ class OpenAIProvider(BaseLLMProvider):
                     },
                 )
 
-            # print("=" * 20 + "<Prompt>" + "=" * 20)
-            # print(prompt)
-            print("=" * 20 + "<Response>" + "=" * 20)
-            print(api_response.choices[0].message.content)
-            print("=" * 50)
-
             action = await self.parse_response(api_response.choices[0].message.content)
-            print(action)
             return action
 
         except Exception as e:
-            print(e)
             return LLMAction(thoughts=f"Error in OpenAI API call: {str(e)}", is_complete=False)
 
     def _extract_response_xml(self, text: str) -> Union[str, None]:

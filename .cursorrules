@@ -49,11 +49,18 @@ graph TD
         YAMLConfig --> EnvVars
     end
     
+    subgraph Callbacks
+        ApprovalBase[ApprovalCallback]
+        ConsoleApproval[ConsoleApprovalCallback]
+        ApprovalBase --> ConsoleApproval
+    end
+    
     Agent --> LLMBase
     Agent --> ToolBase
     Agent --> TaskState
     Agent --> Storage
     Agent --> DebugSession
+    Agent --> ApprovalBase
     Config --> Agent
     YAMLConfig --> Config
 ```
@@ -68,6 +75,7 @@ sequenceDiagram
     participant Tools
     participant StateStorage
     participant Config
+    participant Callback
     
     User->>Config: Load YAML config
     Config->>Config: Load env vars
@@ -79,6 +87,12 @@ sequenceDiagram
         LLMProvider->>Agent: Return action (tool or completion)
         
         alt Tool Execution
+            alt Approval Required
+                Agent->>Callback: Request approval
+                Callback->>User: Show tool details
+                User->>Callback: Provide decision
+                Callback->>Agent: Return approval status
+            end
             Agent->>Tools: Execute tool with args
             Tools->>Agent: Return tool result
             Agent->>StateStorage: Update task state
@@ -228,6 +242,38 @@ Components for debugging and tracing agent execution:
 - `DebugSession`: Manages the debug state and breakpoints
 - `BreakpointConfig`: Configuration for different types of breakpoints
 - `BreakpointType`: Enum of available breakpoint types (TOOL, ACTION, etc.)
+
+### Callbacks (llm_agent/callbacks/)
+
+Components for handling user interactions and approvals:
+
+- `ApprovalCallback`: Abstract base class for approval callbacks
+- `ConsoleApprovalCallback`: Default console-based implementation
+
+**Callback Implementation Requirements:**
+
+- Inherit from `ApprovalCallback`
+- Implement `get_approval(tool_name: str, args: Dict[str, Any], description: Optional[str] = None) -> bool`
+- Handle user input appropriately for the target interface
+- Provide clear feedback about the approval request
+- Return boolean indicating approval status
+
+**Example Implementation:**
+```python
+from llm_agent.callbacks import ApprovalCallback
+
+class CustomApprovalCallback(ApprovalCallback):
+    async def get_approval(self, tool_name: str, args: Dict[str, Any], description: Optional[str] = None) -> bool:
+        # Implement custom approval logic
+        return True
+```
+
+**Integration Points:**
+
+- Agent constructor accepts optional callback
+- Tool execution checks for approval requirements
+- State tracks consecutive auto-approvals
+- Configuration controls approval behavior
 
 ## Code Standards
 

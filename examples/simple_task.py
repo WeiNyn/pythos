@@ -10,7 +10,7 @@ from llm_agent.agent import Agent
 from llm_agent.callbacks import ConsoleApprovalCallback
 from llm_agent.config import AgentConfig, BreakpointConfig, DebugSettings
 from llm_agent.debug import BreakpointType
-from llm_agent.logging import LogConfig
+from llm_agent.logging import LogConfig, TyperLogger
 from llm_agent.state.config import StateStorageConfig
 from dotenv import load_dotenv
 
@@ -18,10 +18,7 @@ load_dotenv()
 
 async def main() -> None:
     """Run a simple task with enhanced debugging"""
-    print(colored("\nInitializing Agent with Debug Features", "cyan"))
-    print("=" * 80)
-
-    # Configure logging
+    # Configure logging with TyperLogger
     log_config = LogConfig(
         level="DEBUG",
         file_path=Path.cwd() / ".llm_agent" / "logs" / "agent.log",
@@ -31,6 +28,10 @@ async def main() -> None:
         show_separators=True,
         format="%(asctime)s - %(name)s - %(levelname)s\n%(message)s",
     )
+
+    # Create TyperLogger instance
+    logger = TyperLogger("agent", log_config)
+    logger.show_panel("Initializing Agent", "Setting up with enhanced debugging", style="cyan")
 
     # Configure debug settings
     debug_settings = DebugSettings(
@@ -67,38 +68,49 @@ async def main() -> None:
     # Initialize agent with the callback
     agent = Agent(config, approval_callback=approval_callback)
 
-    print(colored("\nStarting Task Sequence", "cyan"))
-    print("=" * 80)
+    logger.show_panel("Starting Task Sequence", "Initializing task execution", style="yellow")
 
     setup_task = """Write a python script to draw a circle with random radius from 1 to 10
     """
 
-    print(colored("\nExecuting Setup Task...", "yellow"))
+    logger.start_task("Executing Setup Task...")
     result = await agent.execute_task(setup_task)
-    print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
+    logger.end_task("Setup Task Completed", success=True)
+    logger.show_panel("Task Result", str(result), style="green")
 
     # Demonstrate memory features
-    print(colored("\nDemonstrating Memory Features", "cyan"))
-    print("=" * 80)
+    logger.show_panel("Memory Features", "Demonstrating task history and related tasks", style="cyan")
 
-    print("\nSearching Task History...")
+    logger.start_task("Searching Task History...")
     history = await agent.search_task_history("CSV")
-    for task in history:
-        print(colored("\nFound Task:", "magenta"))
-        print(f"- Description: {task['task']}")
-        print(f"- Relevance: {task['relevance']}")
-        print(f"- Status: {'Completed' if task['completed'] else 'In Progress'}")
+    logger.end_task("Task History Search Complete", success=True)
 
-    print("\nGetting Related Tasks...")
+    for task in history:
+        logger.show_table(
+            "Found Task",
+            {
+                "Description": task["task"],
+                "Relevance": task["relevance"],
+                "Status": "Completed" if task["completed"] else "In Progress",
+            }
+        )
+
+    logger.start_task("Getting Related Tasks...")
     related = await agent.get_related_tasks(limit=3)
+    logger.end_task("Related Tasks Retrieved", success=True)
+
     for task in related:
         status = "Completed" if task["completed"] else "In Progress"
-        print(colored("\nRelated Task:", "magenta"))
-        print(f"- Description: {task['task']}")
-        print(f"- Similarity: {task['similarity']:.2f}")
-        print(f"- Status: {status}")
+        logger.show_table(
+            "Related Task",
+            {
+                "Description": task["task"],
+                "Similarity": f"{task['similarity']:.2f}",
+                "Status": status,
+            }
+        )
 
-    print("\nDone!")
+    logger.show_panel("Task Complete", "All operations finished successfully", style="green")
 
 
 if __name__ == "__main__":

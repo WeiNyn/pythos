@@ -17,6 +17,7 @@ A powerful Python framework for building and integrating LLM-powered agent syste
 - **Checkpoint System**: Create and manage system checkpoints for task progress
 - **YAML Configuration**: Easy-to-use YAML-based configuration system
 - **Environment Variables**: Secure handling of sensitive data
+- **User Approval System**: Flexible callback system for tool execution approval
 
 ## Architecture
 
@@ -27,6 +28,9 @@ llm_agent/
 ├── agent.py              # Main Agent class implementation
 ├── config.py             # Configuration models and validation
 ├── __init__.py           # Package exports
+├── callbacks/            # User approval callback system
+│   ├── base.py           # Base callback interface
+│   └── __init__.py       # Callback exports
 ├── debug/                # Debugging functionality
 ├── llm/                  # LLM provider implementations
 │   ├── base.py           # Base LLM provider interface
@@ -168,13 +172,17 @@ import asyncio
 from pathlib import Path
 from llm_agent.agent import Agent
 from llm_agent.config import AgentConfig
+from llm_agent.callbacks import ConsoleApprovalCallback
 
 async def run_task():
     # Load configuration from YAML
     config = AgentConfig.from_yaml("config.yaml")
     
-    # Create agent instance
-    agent = Agent(config)
+    # Create approval callback (optional)
+    approval_callback = ConsoleApprovalCallback()
+    
+    # Create agent instance with callback
+    agent = Agent(config, approval_callback=approval_callback)
     
     # Execute task
     result = await agent.execute_task(
@@ -185,6 +193,36 @@ async def run_task():
 if __name__ == "__main__":
     asyncio.run(run_task())
 ```
+
+### User Approval System
+
+The framework includes a flexible callback system for handling user approvals of tool executions:
+
+1. **Base Callback Interface**:
+   ```python
+   from llm_agent.callbacks import ApprovalCallback
+   
+   class MyCustomCallback(ApprovalCallback):
+       async def get_approval(self, tool_name: str, args: Dict[str, Any], description: Optional[str] = None) -> bool:
+           # Implement custom approval logic
+           return True  # or False
+   ```
+
+2. **Default Console Callback**:
+   - Built-in `ConsoleApprovalCallback` for command-line interaction
+   - Displays tool details and gets user input
+   - Handles yes/no responses with validation
+
+3. **Configuration**:
+   ```yaml
+   auto_approve_tools: false  # Require approval for all tools
+   max_consecutive_auto_approvals: 5  # Auto-approve after 5 consecutive approvals
+   ```
+
+4. **Usage**:
+   - Pass callback to Agent constructor
+   - System automatically requests approval when needed
+   - Tracks consecutive approvals for auto-approval feature
 
 ## Contributing
 

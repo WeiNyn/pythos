@@ -2,6 +2,7 @@
 Core Agent implementation
 """
 
+import sys
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -10,7 +11,7 @@ from .callbacks import ApprovalCallback, ConsoleApprovalCallback
 from .config import AgentConfig
 from .debug import BreakpointType, DebugCallback, DebugInfo, DebugSession
 from .llm.base import BaseLLMProvider
-from .logging import AgentLogger
+from .logging import AgentLogger, LogConfig, TyperLogger
 from .state import TaskState
 from .state.storage import JsonStateStorage, SqliteStateStorage, StateStorage
 from .tools.base import BaseTool
@@ -33,11 +34,18 @@ class Agent:
         self.debug_session = DebugSession()
         self.debug_callback: Optional[DebugCallback] = None
 
-        # Initialize logger
+        # Initialize logger based on mode
         log_path = self.config.working_directory / ".llm_agent" / "logs" / "agent.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         self.config.logging.file_path = log_path
-        self.logger = AgentLogger("agent", self.config.logging)
+
+        # Use TyperLogger in CLI mode, otherwise use default logger
+        is_cli_mode = sys.stdin.isatty() and sys.stdout.isatty()
+        if is_cli_mode:
+            self.logger = TyperLogger("agent", self.config.logging)
+            self.logger.show_panel("Agent Initialization", "Setting up agent with CLI mode", style="cyan")
+        else:
+            self.logger = AgentLogger("agent", self.config.logging)
 
         # Initialize state storage
         storage_config = self.config.state_storage
