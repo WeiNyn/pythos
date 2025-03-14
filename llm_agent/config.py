@@ -2,12 +2,14 @@
 Agent configuration
 """
 
+import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import yaml
 from pydantic import BaseModel, validator
 
-from .debug import BreakpointConfig
+from .debug import BreakpointConfig, BreakpointType
 from .logging import DebugConfig, LogConfig
 from .state.config import StateStorageConfig
 
@@ -81,3 +83,45 @@ class AgentConfig(BaseModel):
         self.debug.logging.enable_memory_logging = True
         self.debug.logging.enable_separators = True
         self.debug.logging.log_level = "DEBUG"
+
+    @classmethod
+    def from_yaml(cls, config_path: str) -> "AgentConfig":
+        """Load configuration from a YAML file.
+        
+        Args:
+            config_path: Path to the YAML configuration file
+            
+        Returns:
+            AgentConfig instance with settings from the YAML file
+            
+        Raises:
+            ValueError: If environment variables are not found
+            FileNotFoundError: If the config file doesn't exist
+        """
+        with open(config_path, "r") as f:
+            config_dict = yaml.safe_load(f)
+
+        # Handle environment variable substitution
+        if isinstance(config_dict.get("api_key"), str) and config_dict["api_key"].startswith("${"):
+            env_var = config_dict["api_key"][2:-1]  # Remove ${ and }
+            config_dict["api_key"] = os.environ.get(env_var)
+            if not config_dict["api_key"]:
+                raise ValueError(f"Environment variable {env_var} not found")
+
+        # Convert working directory to Path
+        if isinstance(config_dict.get("working_directory"), str):
+            config_dict["working_directory"] = Path(config_dict["working_directory"]).resolve()
+
+        # Create nested config objects
+        config_dict["state_storage"] = StateStorageConfig(**config_dict["state_storage"])
+        config_dict["logging"] = LogConfig(**config_dict["logging"])
+        
+        # Create debug settings
+        debug_dict = config_dict["debug"]
+        if "breakpoints" in debug_dict:
+            for name, bp in debug_dict["breakpoints"].items():
+                bp["type"] = BreakpointType(bp["type"])
+                debug_dict["breakpoints"][name] = BreakpointConfig(**bp)
+        config_dict["debug"] = DebugSettings(**debug_dict)
+
+        return cls(**config_dict)
