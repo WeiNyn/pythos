@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from .callbacks import ApprovalCallback, ConsoleApprovalCallback
 from .config import AgentConfig
 from .debug import BreakpointType, DebugCallback, DebugInfo, DebugSession
 from .llm.base import BaseLLMProvider
@@ -18,7 +19,7 @@ from .tools.base import BaseTool
 class Agent:
     """Main Agent class that handles task execution and memory management"""
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig, approval_callback: Optional[ApprovalCallback] = None):
         """Initialize the agent with the given configuration"""
         self.task_id = str(uuid.uuid4())
         self.checkpoint_count = 0
@@ -26,6 +27,7 @@ class Agent:
         self.tools: Dict[str, BaseTool] = {}
         self.state = TaskState()
         self.llm: Optional[BaseLLMProvider] = None
+        self.approval_callback = approval_callback or ConsoleApprovalCallback()
 
         # Debug session
         self.debug_session = DebugSession()
@@ -204,13 +206,28 @@ class Agent:
                         },
                     )
 
-                    # Execute tool with approval if needed
+                    # Get tool approval if needed
                     if (
                         not self.config.auto_approve_tools
                         or self.state.consecutive_auto_approvals >= self.config.max_consecutive_auto_approvals
                     ):
-                        # TODO: Implement approval mechanism
-                        pass
+                        approved = await self.approval_callback.get_approval(
+                            tool_name=action.tool_name,
+                            args=action.tool_args,
+                            description=action.thoughts
+                        )
+                        
+                        if not approved:
+                            self.logger.info(
+                                f"Tool execution rejected: {action.tool_name}",
+                                task_id=self.task_id,
+                                tool_name=action.tool_name,
+                            )
+                            continue
+                        
+                        self.state.reset_auto_approvals()
+                    else:
+                        self.state.increment_auto_approvals()
 
                     result = await tool.execute(action.tool_args)
 
@@ -234,36 +251,17 @@ class Agent:
                         },
                     )
 
-                    # Debug: Check state change
-                    await self._handle_debug_break(BreakpointType.STATE, {"state": self.state.dict()})
-
-            # Handle max iterations reached
             if iteration >= max_iterations:
-                msg = f"Task exceeded maximum iterations ({max_iterations})"
-                self.logger.warning(msg, task_id=self.task_id, context={"iterations": iteration})
-                await self.save_message("system", msg)
-                self.state.mark_failed(msg)
-                raise RuntimeError(msg)
+                self.state.mark_failed("Maximum iterations reached")
+                raise RuntimeError("Task execution exceeded maximum iterations")
 
         except Exception as e:
-            self.logger.error(
-                f"Task execution failed: {e}",
-                task_id=self.task_id,
-                context={"error": str(e), "traceback": str(e.__traceback__)},
-            )
-            await self.save_message("system", f"Task failed: {str(e)}")
             self.state.mark_failed(str(e))
-
-            if self.debug_callback and self.config.debug.enabled:
-                self.debug_callback.on_error(
-                    e,
-                    DebugInfo(
-                        timestamp=datetime.utcnow(),
-                        action="error",
-                        details={"error": str(e)},
-                        context={"state": self.state.dict()},
-                    ),
-                )
+            self.logger.error(
+                f"Task execution failed: {str(e)}",
+                task_id=self.task_id,
+                context={"error": str(e)},
+            )
             raise
 
         finally:

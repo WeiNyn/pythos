@@ -7,11 +7,14 @@ from pathlib import Path
 from termcolor import colored
 
 from llm_agent.agent import Agent
+from llm_agent.callbacks import ConsoleApprovalCallback
 from llm_agent.config import AgentConfig, BreakpointConfig, DebugSettings
 from llm_agent.debug import BreakpointType
 from llm_agent.logging import LogConfig
 from llm_agent.state.config import StateStorageConfig
+from dotenv import load_dotenv
 
+load_dotenv()
 
 async def main() -> None:
     """Run a simple task with enhanced debugging"""
@@ -44,28 +47,30 @@ async def main() -> None:
     config = AgentConfig(
         llm_provider="openai",
         api_key=os.environ["OPENAI_API_KEY"],
+        base_url=os.environ["OPENAI_BASE_URL"],
         working_directory=Path.cwd(),
         state_storage=StateStorageConfig(
-            type="json",  #
-            # path=None,  # Default to working_directory/.llm_agent/state
+            type="json",
             auto_checkpoint=True,
             max_checkpoints=10,
         ),
         rate_limit=9,
-        auto_approve_tools=True,
+        auto_approve_tools=False,  # Disable auto-approval to demonstrate callback
         max_consecutive_auto_approvals=5,
         debug=debug_settings,
         logging=log_config,
     )
 
-    agent = Agent(config)
+    # Create a custom approval callback
+    approval_callback = ConsoleApprovalCallback()
+    
+    # Initialize agent with the callback
+    agent = Agent(config, approval_callback=approval_callback)
 
     print(colored("\nStarting Task Sequence", "cyan"))
     print("=" * 80)
 
-    setup_task = """Modify the `examples/simple_task.py that:
-    - remove redundant comment
-    - add traceback when handle error
+    setup_task = """Write a python script to draw a circle with random radius from 1 to 10
     """
 
     print(colored("\nExecuting Setup Task...", "yellow"))
