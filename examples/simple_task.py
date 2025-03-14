@@ -46,12 +46,12 @@ async def main() -> None:
         api_key=os.environ["OPENAI_API_KEY"],
         working_directory=Path.cwd(),
         state_storage=StateStorageConfig(
-            type="json",  # Using SQLite for better query support
+            type="json",  #
             # path=None,  # Default to working_directory/.llm_agent/state
             auto_checkpoint=True,
             max_checkpoints=10,
         ),
-        rate_limit=60,
+        rate_limit=9,
         auto_approve_tools=True,
         max_consecutive_auto_approvals=5,
         debug=debug_settings,
@@ -63,37 +63,16 @@ async def main() -> None:
     print(colored("\nStarting Task Sequence", "cyan"))
     print("=" * 80)
 
-    setup_task = """Create a python script that:
-    1. receives a number as input
-    2. calculates the square of the number
-    3. print a rectangle, square or triangle that has the area equal to
-       the square of the number"""
+    setup_task = """Modify the `examples/simple_task.py that:
+    - remove redundant comment
+    - add traceback when handle error
+    """
 
     print(colored("\nExecuting Setup Task...", "yellow"))
     result = await agent.execute_task(setup_task)
     print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
 
-    #     # First task to establish context
-    #     setup_task = """Create a Python utility module that:
-    # 1. Has functions for CSV data processing
-    # 2. Includes type hints and docstrings
-    # 3. Has proper error handling
-    # 4. Is well-organized and reusable"""
 
-    #     print(colored("\nExecuting Setup Task...", "yellow"))
-    #     result = await agent.execute_task(setup_task)
-    #     print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
-
-    #     # Second task that builds on the first
-    #     processing_task = """Using the utility module we just created:
-    # 1. Create a script that processes a sample CSV file
-    # 2. Add input validation
-    # 3. Include error reporting
-    # 4. Show example usage"""
-
-    #     print(colored("\nExecuting Processing Task...", "yellow"))
-    #     result = await agent.execute_task(processing_task)
-    #     print(colored(f"Processing Task Completed\nResult: {result}\n", "green"))
 
     # Demonstrate memory features
     print(colored("\nDemonstrating Memory Features", "cyan"))
@@ -125,4 +104,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print(colored("\nTask interrupted by user", "red"))
     except Exception as e:
+        import traceback
+        traceback_str = traceback.format_exc()
         print(colored(f"\nError: {str(e)}", "red"))
+        print(colored(f"Traceback:\n{traceback_str}", "red"))

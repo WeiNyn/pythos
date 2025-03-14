@@ -54,7 +54,10 @@ For task completion:
 <thoughts>Final analysis and summary</thoughts>
 <is_complete>true</is_complete>
 <r>Detailed result description</r>
-</response>"""
+</response>
+
+Always wrap your code with <![CDATA[ <code gen here> ]]> to ensure the xml format
+"""
 
     # Generate tool documentation
     tools_doc = """

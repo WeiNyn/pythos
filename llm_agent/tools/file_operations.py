@@ -107,7 +107,7 @@ class WriteFileTool(BaseTool):
 <WriteFileTool>
 <args>
     <path>src/output.txt</path>
-    <content>Hello, world!</content>
+    <content>![CDATA[Hello, world!]]></content>
     <create_dirs>true</create_dirs>
 </args>
 </WriteFileTool>"""
@@ -375,13 +375,13 @@ class ReplaceInFileTool(BaseTool):
 <ReplaceInFileTool>
 <args>
     <path>src/main.py</path>
-    <content><<<<<<< SEARCH
+    <content><![CDATA[<<<<<<< SEARCH
 def old_function():
     return "old"
 =======
 def new_function():
     return "new"
->>>>>>> REPLACE</content>
+>>>>>>> REPLACE]]></content>
     <count>1</count>
 </args>
 </ReplaceInFileTool>"""
