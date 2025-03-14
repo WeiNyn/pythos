@@ -59,9 +59,7 @@ class StateStorage(ABC):
         pass
 
     @abstractmethod
-    def search_task_history(
-        self, query: str, limit: int = 10
-    ) -> List[Tuple[str, float]]:
+    def search_task_history(self, query: str, limit: int = 10) -> List[Tuple[str, float]]:
         """Search task history with relevance scores"""
         pass
 
@@ -208,9 +206,7 @@ class JsonStateStorage(StateStorage):
         related = []
         # Get all task states
         for path in self.state_path.glob("*.json"):
-            if not path.name.endswith("_messages.json") and not path.name.endswith(
-                "_context.json"
-            ):
+            if not path.name.endswith("_messages.json") and not path.name.endswith("_context.json"):
                 other_id = path.stem
                 if other_id != task_id:
                     other_state = self.load_state(other_id)
@@ -234,9 +230,7 @@ class JsonStateStorage(StateStorage):
         related.sort(key=lambda x: x["similarity"], reverse=True)
         return related[:limit]
 
-    def search_task_history(
-        self, query: str, limit: int = 10
-    ) -> List[Tuple[str, float]]:
+    def search_task_history(self, query: str, limit: int = 10) -> List[Tuple[str, float]]:
         """Search task history with relevance scores"""
         results = []
 
@@ -247,9 +241,7 @@ class JsonStateStorage(StateStorage):
                 messages = json.load(f).get("messages", [])
 
             # Simple relevance scoring based on term frequency
-            score = sum(
-                1 for msg in messages if query.lower() in msg.get("content", "").lower()
-            )
+            score = sum(1 for msg in messages if query.lower() in msg.get("content", "").lower())
 
             if score > 0:
                 results.append((task_id, score))
@@ -258,9 +250,7 @@ class JsonStateStorage(StateStorage):
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:limit]
 
-    def _compute_context_similarity(
-        self, ctx1: Dict[str, Any], ctx2: Dict[str, Any]
-    ) -> float:
+    def _compute_context_similarity(self, ctx1: Dict[str, Any], ctx2: Dict[str, Any]) -> float:
         """Compute similarity score between two contexts"""
         # Simple implementation - count shared keys and values
         shared_keys = set(ctx1.keys()) & set(ctx2.keys())
@@ -401,9 +391,7 @@ class SqliteStateStorage(StateStorage):
         """Load task state from database"""
         with sqlite3.connect(self.db_path) as conn:
             # Load main state
-            cursor = conn.execute(
-                "SELECT state FROM states WHERE task_id = ?", (task_id,)
-            )
+            cursor = conn.execute("SELECT state FROM states WHERE task_id = ?", (task_id,))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -441,10 +429,7 @@ class SqliteStateStorage(StateStorage):
                 (task_id,),
             )
 
-            state["context"] = {
-                row[0]: json.loads(row[1], object_hook=json_decoder_hook)
-                for row in cursor.fetchall()
-            }
+            state["context"] = {row[0]: json.loads(row[1], object_hook=json_decoder_hook) for row in cursor.fetchall()}
 
             return state
 
@@ -489,9 +474,7 @@ class SqliteStateStorage(StateStorage):
 
             return related
 
-    def search_task_history(
-        self, query: str, limit: int = 10
-    ) -> List[Tuple[str, float]]:
+    def search_task_history(self, query: str, limit: int = 10) -> List[Tuple[str, float]]:
         """Search task history with relevance scores"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.execute(

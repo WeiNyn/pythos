@@ -72,8 +72,6 @@ async def main() -> None:
     result = await agent.execute_task(setup_task)
     print(colored(f"Setup Task Completed\nResult: {result}\n", "green"))
 
-
-
     # Demonstrate memory features
     print(colored("\nDemonstrating Memory Features", "cyan"))
     print("=" * 80)
@@ -105,6 +103,7 @@ if __name__ == "__main__":
         print(colored("\nTask interrupted by user", "red"))
     except Exception as e:
         import traceback
+
         traceback_str = traceback.format_exc()
         print(colored(f"\nError: {str(e)}", "red"))
         print(colored(f"Traceback:\n{traceback_str}", "red"))

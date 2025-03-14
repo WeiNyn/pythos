@@ -204,9 +204,7 @@ class AgentLogger:
             tool_name: Optional tool name
             context: Optional additional context
         """
-        record = StructuredLogRecord(
-            level=level, msg=msg, task_id=task_id, tool_name=tool_name, context=context
-        )
+        record = StructuredLogRecord(level=level, msg=msg, task_id=task_id, tool_name=tool_name, context=context)
 
         log_record = logging.LogRecord(
             name=self.name,
@@ -225,8 +223,7 @@ class AgentLogger:
     def format_section(self, title: str, content: str) -> str:
         """Format a section with separators and title"""
         if self.config.show_separators:
-            return (f"\n{SUBSECTION_SEPARATOR}\n{title}\n{content}\n"
-                    f"{SUBSECTION_SEPARATOR}\n")
+            return f"\n{SUBSECTION_SEPARATOR}\n{title}\n{content}\n{SUBSECTION_SEPARATOR}\n"
         return f"\n{title}\n{content}"
 
     def debug(self, msg: str, **kwargs) -> None:

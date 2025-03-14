@@ -24,9 +24,7 @@ class BaseLLMProvider(ABC):
     """Base class for LLM providers"""
 
     @abstractmethod
-    async def get_next_action(
-        self, task: str, state: TaskState, available_tools: List[str]
-    ) -> LLMAction:
+    async def get_next_action(self, task: str, state: TaskState, available_tools: List[str]) -> LLMAction:
         """
         Get the next action to take based on the current task and state
 
@@ -41,9 +39,7 @@ class BaseLLMProvider(ABC):
         pass
 
     @abstractmethod
-    async def format_prompt(
-        self, task: str, state: TaskState, available_tools: List[str]
-    ) -> str:
+    async def format_prompt(self, task: str, state: TaskState, available_tools: List[str]) -> str:
         """
         Format the prompt for the LLM
 

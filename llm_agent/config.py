@@ -87,18 +87,18 @@ class AgentConfig(BaseModel):
     @classmethod
     def from_yaml(cls, config_path: str) -> "AgentConfig":
         """Load configuration from a YAML file.
-        
+
         Args:
             config_path: Path to the YAML configuration file
-            
+
         Returns:
             AgentConfig instance with settings from the YAML file
-            
+
         Raises:
             ValueError: If environment variables are not found
             FileNotFoundError: If the config file doesn't exist
         """
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             config_dict = yaml.safe_load(f)
 
         # Handle environment variable substitution
@@ -115,7 +115,7 @@ class AgentConfig(BaseModel):
         # Create nested config objects
         config_dict["state_storage"] = StateStorageConfig(**config_dict["state_storage"])
         config_dict["logging"] = LogConfig(**config_dict["logging"])
-        
+
         # Create debug settings
         debug_dict = config_dict["debug"]
         if "breakpoints" in debug_dict:

@@ -41,17 +41,13 @@ async def mock_tool() -> BaseTool:
             super().__init__("mock_tool", "A mock tool for testing")
 
         async def execute(self, args: dict) -> ToolResult:
-            return ToolResult(
-                success=True, message="Mock tool executed successfully", data=args
-            )
+            return ToolResult(success=True, message="Mock tool executed successfully", data=args)
 
     return MockTool()
 
 
 @pytest.fixture
-async def agent(
-    config: AgentConfig, mock_tool: BaseTool
-) -> AsyncGenerator[Agent, None]:
+async def agent(config: AgentConfig, mock_tool: BaseTool) -> AsyncGenerator[Agent, None]:
     """Create an agent with mock tools and LLM"""
     agent = Agent(config)
 

@@ -81,9 +81,7 @@ class TaskState(BaseModel):
         self.user_inputs = []
         # Keep context and related_tasks for continuity
 
-    def add_tool_result(
-        self, tool_name: str, result: Any, args: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def add_tool_result(self, tool_name: str, result: Any, args: Optional[Dict[str, Any]] = None) -> None:
         """
         Add a tool execution result
 
@@ -101,9 +99,7 @@ class TaskState(BaseModel):
             )
         )
 
-    def add_message(
-        self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def add_message(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Add a message to the conversation history"""
         self.messages.append(
             Message(
@@ -114,19 +110,11 @@ class TaskState(BaseModel):
             )
         )
 
-    def add_user_input(
-        self, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    def add_user_input(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Record user input with optional metadata"""
-        self.user_inputs.append(
-            UserInput(
-                content=content, timestamp=datetime.utcnow(), metadata=metadata or {}
-            )
-        )
+        self.user_inputs.append(UserInput(content=content, timestamp=datetime.utcnow(), metadata=metadata or {}))
 
-    def add_related_task(
-        self, task_id: str, description: str, relevance_score: float, completed: bool
-    ) -> None:
+    def add_related_task(self, task_id: str, description: str, relevance_score: float, completed: bool) -> None:
         """Add a related task reference"""
         self.related_tasks.append(
             RelatedTask(

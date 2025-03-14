@@ -54,9 +54,7 @@ class RateLimiter:
         Blocks until a request slot is available.
         """
         if self.logger:
-            self.logger.debug(
-                "Attempting to acquire rate limit slot", context=self._get_metrics()
-            )
+            self.logger.debug("Attempting to acquire rate limit slot", context=self._get_metrics())
 
         async with self.lock:
             now = time.time()
@@ -89,9 +87,7 @@ class RateLimiter:
                 # Add current request timestamp
                 self.requests.append(now)
                 if self.logger:
-                    self.logger.debug(
-                        "Rate limit slot acquired", context=self._get_metrics()
-                    )
+                    self.logger.debug("Rate limit slot acquired", context=self._get_metrics())
 
     def get_current_rpm(self) -> int:
         """Get current requests per minute"""

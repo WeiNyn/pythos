@@ -39,9 +39,7 @@ class Agent:
 
         # Initialize state storage
         storage_config = self.config.state_storage
-        storage_path = storage_config.path or (
-            self.config.working_directory / ".llm_agent" / "state"
-        )
+        storage_path = storage_config.path or (self.config.working_directory / ".llm_agent" / "state")
         storage_path.mkdir(parents=True, exist_ok=True)
 
         self.storage: StateStorage = (
@@ -78,20 +76,14 @@ class Agent:
     def register_tool(self, tool: BaseTool) -> None:
         """Register a new tool with the agent"""
         self.tools[tool.name] = tool
-        self.logger.debug(
-            f"Registered tool: {tool.name}", task_id=self.task_id, tool_name=tool.name
-        )
+        self.logger.debug(f"Registered tool: {tool.name}", task_id=self.task_id, tool_name=tool.name)
 
-    async def save_user_input(
-        self, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    async def save_user_input(self, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Save user input to memory"""
         self.state.add_user_input(content, metadata)
         self.storage.save_state(self.task_id, self.state.dict())
 
-    async def save_message(
-        self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None
-    ) -> None:
+    async def save_message(self, role: str, content: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         """Save a conversation message"""
         self.state.add_message(role, content, metadata)
         self.storage.save_state(self.task_id, self.state.dict())
@@ -105,9 +97,7 @@ class Agent:
         """Get tasks related to current task"""
         return self.storage.get_related_tasks(self.task_id, limit)
 
-    async def search_task_history(
-        self, query: str, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def search_task_history(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Search through task history"""
         results = self.storage.search_task_history(query, limit)
 
@@ -126,9 +116,7 @@ class Agent:
                 )
         return tasks
 
-    async def execute_task(
-        self, task: str, debug_callback: Optional[DebugCallback] = None
-    ) -> Any:
+    async def execute_task(self, task: str, debug_callback: Optional[DebugCallback] = None) -> Any:
         """Execute a task using the LLM for guidance and tools for actions"""
         if not self.llm:
             raise RuntimeError("LLM provider not initialized")
@@ -168,9 +156,7 @@ class Agent:
                 )
 
                 # Debug: Check for LLM breakpoint
-                await self._handle_debug_break(
-                    BreakpointType.LLM, {"task": task, "state": self.state.dict()}
-                )
+                await self._handle_debug_break(BreakpointType.LLM, {"task": task, "state": self.state.dict()})
 
                 # Get next action from LLM
                 action = await self.llm.get_next_action(
@@ -221,8 +207,7 @@ class Agent:
                     # Execute tool with approval if needed
                     if (
                         not self.config.auto_approve_tools
-                        or self.state.consecutive_auto_approvals
-                        >= self.config.max_consecutive_auto_approvals
+                        or self.state.consecutive_auto_approvals >= self.config.max_consecutive_auto_approvals
                     ):
                         # TODO: Implement approval mechanism
                         pass
@@ -230,16 +215,12 @@ class Agent:
                     result = await tool.execute(action.tool_args)
 
                     # Store tool execution
-                    self.state.add_tool_result(
-                        action.tool_name, result, action.tool_args
-                    )
+                    self.state.add_tool_result(action.tool_name, result, action.tool_args)
                     self.storage.save_state(self.task_id, self.state.dict())
 
                     # Create checkpoint if enabled
                     if self.config.state_storage.auto_checkpoint:
-                        self._create_checkpoint(
-                            f"After executing tool: {action.tool_name}"
-                        )
+                        self._create_checkpoint(f"After executing tool: {action.tool_name}")
 
                     # Log tool execution
                     self.logger.info(
@@ -254,16 +235,12 @@ class Agent:
                     )
 
                     # Debug: Check state change
-                    await self._handle_debug_break(
-                        BreakpointType.STATE, {"state": self.state.dict()}
-                    )
+                    await self._handle_debug_break(BreakpointType.STATE, {"state": self.state.dict()})
 
             # Handle max iterations reached
             if iteration >= max_iterations:
                 msg = f"Task exceeded maximum iterations ({max_iterations})"
-                self.logger.warning(
-                    msg, task_id=self.task_id, context={"iterations": iteration}
-                )
+                self.logger.warning(msg, task_id=self.task_id, context={"iterations": iteration})
                 await self.save_message("system", msg)
                 self.state.mark_failed(msg)
                 raise RuntimeError(msg)

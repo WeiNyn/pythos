@@ -85,8 +85,7 @@ class BaseTool(ABC):
         return [
             (
                 "param",
-                "Generic parameter (override this method to provide "
-                "specific descriptions)",
+                "Generic parameter (override this method to provide specific descriptions)",
             )
         ]
 

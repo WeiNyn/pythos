@@ -11,9 +11,7 @@ from pydantic import BaseModel, Field
 class StateStorageConfig(BaseModel):
     """Configuration for state storage"""
 
-    type: Literal["json", "sqlite"] = Field(
-        default="json", description="Storage backend type"
-    )
+    type: Literal["json", "sqlite"] = Field(default="json", description="Storage backend type")
     path: Path = Field(
         description="Path to storage directory or database file",
         default=Path.cwd() / ".llm_agent",
@@ -22,6 +20,4 @@ class StateStorageConfig(BaseModel):
         default=True,
         description="Create checkpoints automatically after tool executions",
     )
-    max_checkpoints: int = Field(
-        default=10, description="Maximum number of checkpoints to keep per task"
-    )
+    max_checkpoints: int = Field(default=10, description="Maximum number of checkpoints to keep per task")

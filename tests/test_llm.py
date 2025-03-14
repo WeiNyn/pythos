@@ -109,9 +109,7 @@ async def test_openai_xml_parsing(llm_provider, mock_openai_response_with_xml):
     """Test parsing of XML-formatted tool calls"""
     with patch("llm_agent.llm.openai.AsyncOpenAI") as mock_openai:
         mock_client = MagicMock()
-        mock_client.chat.completions.create = AsyncMock(
-            return_value=mock_openai_response_with_xml
-        )
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response_with_xml)
         mock_openai.return_value = mock_client
 
         action = await llm_provider.get_next_action("Test prompt", None)
@@ -123,15 +121,11 @@ async def test_openai_xml_parsing(llm_provider, mock_openai_response_with_xml):
 
 
 @pytest.mark.asyncio
-async def test_openai_completion_result(
-    llm_provider, mock_openai_response_with_completion
-):
+async def test_openai_completion_result(llm_provider, mock_openai_response_with_completion):
     """Test parsing of completion results with XML format"""
     with patch("llm_agent.llm.openai.AsyncOpenAI") as mock_openai:
         mock_client = MagicMock()
-        mock_client.chat.completions.create = AsyncMock(
-            return_value=mock_openai_response_with_completion
-        )
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response_with_completion)
         mock_openai.return_value = mock_client
 
         action = await llm_provider.get_next_action("Test prompt", None)
@@ -146,9 +140,7 @@ async def test_openai_r_tag_result(llm_provider, mock_openai_response_with_resul
     """Test parsing results with the <r> tag"""
     with patch("llm_agent.llm.openai.AsyncOpenAI") as mock_openai:
         mock_client = MagicMock()
-        mock_client.chat.completions.create = AsyncMock(
-            return_value=mock_openai_response_with_result_tag
-        )
+        mock_client.chat.completions.create = AsyncMock(return_value=mock_openai_response_with_result_tag)
         mock_openai.return_value = mock_client
 
         action = await llm_provider.get_next_action("Test prompt", None)

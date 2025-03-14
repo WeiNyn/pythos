@@ -30,21 +30,15 @@ class ReadFileTool(BaseTool):
         try:
             file_path = Path(path)
             if not file_path.exists():
-                return ToolResult(
-                    success=False, message=f"File not found: {path}", data=None
-                )
+                return ToolResult(success=False, message=f"File not found: {path}", data=None)
 
             with open(file_path, encoding="utf-8") as f:
                 content = f.read()
 
-            return ToolResult(
-                success=True, message=f"Successfully read file: {path}", data=content
-            )
+            return ToolResult(success=True, message=f"Successfully read file: {path}", data=content)
 
         except Exception as e:
-            return ToolResult(
-                success=False, message=f"Error reading file: {str(e)}", data=None
-            )
+            return ToolResult(success=False, message=f"Error reading file: {str(e)}", data=None)
 
     def get_example(self) -> str:
         """Get example usage for ReadFileTool"""
@@ -80,9 +74,7 @@ class WriteFileTool(BaseTool):
         create_dirs = args.get("create_dirs", True)
 
         if not path or content is None:
-            return ToolResult(
-                success=False, message="Both path and content are required", data=None
-            )
+            return ToolResult(success=False, message="Both path and content are required", data=None)
 
         try:
             file_path = Path(path)
@@ -92,14 +84,10 @@ class WriteFileTool(BaseTool):
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(str(content))
 
-            return ToolResult(
-                success=True, message=f"Successfully wrote to file: {path}", data=None
-            )
+            return ToolResult(success=True, message=f"Successfully wrote to file: {path}", data=None)
 
         except Exception as e:
-            return ToolResult(
-                success=False, message=f"Error writing file: {str(e)}", data=None
-            )
+            return ToolResult(success=False, message=f"Error writing file: {str(e)}", data=None)
 
     def get_example(self) -> str:
         """Get example usage for WriteFileTool"""
@@ -169,9 +157,7 @@ class SearchFilesTool(BaseTool):
             )
 
         except Exception as e:
-            return ToolResult(
-                success=False, message=f"Error searching files: {str(e)}", data=None
-            )
+            return ToolResult(success=False, message=f"Error searching files: {str(e)}", data=None)
 
     def get_example(self) -> str:
         """Get example usage for SearchFilesTool"""
@@ -227,20 +213,12 @@ class ListFilesTool(BaseTool):
                         file_path = root_path / filename
                         files.append(str(file_path.relative_to(base_path)))
             else:
-                files = [
-                    str(p.relative_to(base_path))
-                    for p in base_path.iterdir()
-                    if p.is_file()
-                ]
+                files = [str(p.relative_to(base_path)) for p in base_path.iterdir() if p.is_file()]
 
-            return ToolResult(
-                success=True, message=f"Listed {len(files)} files", data=sorted(files)
-            )
+            return ToolResult(success=True, message=f"Listed {len(files)} files", data=sorted(files))
 
         except Exception as e:
-            return ToolResult(
-                success=False, message=f"Error listing files: {str(e)}", data=None
-            )
+            return ToolResult(success=False, message=f"Error listing files: {str(e)}", data=None)
 
     def get_example(self) -> str:
         """Get example usage for ListFilesTool"""
@@ -297,9 +275,7 @@ class ReplaceInFileTool(BaseTool):
         try:
             file_path = Path(path)
             if not file_path.exists():
-                return ToolResult(
-                    success=False, message=f"File not found: {path}", data=None
-                )
+                return ToolResult(success=False, message=f"File not found: {path}", data=None)
 
             # Read the original content
             with open(file_path, encoding="utf-8") as f:
@@ -314,8 +290,7 @@ class ReplaceInFileTool(BaseTool):
             if not matches:
                 return ToolResult(
                     success=False,
-                    message="Invalid replacement format. "
-                            "Use git-like comparison markers.",
+                    message="Invalid replacement format. Use git-like comparison markers.",
                     data=None,
                 )
 
@@ -334,11 +309,7 @@ class ReplaceInFileTool(BaseTool):
                     )
 
                 # Perform the replacement for the specified count
-                new_content = (
-                    replacement_text.join(parts[:count])
-                    + replacement_text
-                    + search_text.join(parts[count:])
-                )
+                new_content = replacement_text.join(parts[:count]) + replacement_text + search_text.join(parts[count:])
                 num_replacements = min(count, len(parts) - 1)
             else:
                 # Replace all occurrences
@@ -358,8 +329,7 @@ class ReplaceInFileTool(BaseTool):
 
             return ToolResult(
                 success=True,
-                message=f"Successfully replaced {num_replacements} occurrences "
-                        f"in file: {path}",
+                message=f"Successfully replaced {num_replacements} occurrences in file: {path}",
                 data={"replacements_made": num_replacements},
             )
         except Exception as e:
@@ -456,14 +426,10 @@ class RunCommandLineTool(BaseTool):
 
             # Snapshot files before command execution if tracking is enabled
             files_before = self._get_source_files(work_dir) if track_files else set()
-            modified_times_before = (
-                self._get_file_mtimes(files_before) if track_files else {}
-            )
+            modified_times_before = self._get_file_mtimes(files_before) if track_files else {}
 
             # Execute the command
-            process = subprocess.run(
-                command, shell=True, cwd=str(work_dir), capture_output=True, text=True
-            )
+            process = subprocess.run(command, shell=True, cwd=str(work_dir), capture_output=True, text=True)
 
             # Get command output
             stdout = process.stdout
@@ -482,9 +448,7 @@ class RunCommandLineTool(BaseTool):
 
                 # Detect modified files
                 for file in files_before & files_after:
-                    if modified_times_after.get(file) != modified_times_before.get(
-                        file
-                    ):
+                    if modified_times_after.get(file) != modified_times_before.get(file):
                         modified_files.append(str(file.relative_to(work_dir)))
 
             # Prepare result data
@@ -503,9 +467,7 @@ class RunCommandLineTool(BaseTool):
             else:
                 result_message = f"Command failed with exit code {return_code}"
 
-            return ToolResult(
-                success=return_code == 0, message=result_message, data=result_data
-            )
+            return ToolResult(success=return_code == 0, message=result_message, data=result_data)
 
         except Exception as e:
             return ToolResult(

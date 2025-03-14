@@ -44,9 +44,7 @@ async def test_tool_registration(mock_agent):
     """Test tool registration"""
     mock_tool = MagicMock()
     mock_tool.name = "test_tool"
-    mock_tool.execute = AsyncMock(
-        return_value=ToolResult(success=True, message="Test successful", data=None)
-    )
+    mock_tool.execute = AsyncMock(return_value=ToolResult(success=True, message="Test successful", data=None))
 
     mock_agent.register_tool(mock_tool)
     assert "test_tool" in mock_agent.tools
@@ -57,9 +55,7 @@ async def test_task_execution_success(mock_agent):
     """Test successful task execution"""
     # Mock LLM to return a completion action
     mock_agent.llm.get_next_action = AsyncMock(
-        return_value=LLMAction(
-            is_complete=True, result="Task completed successfully", thoughts="All done"
-        )
+        return_value=LLMAction(is_complete=True, result="Task completed successfully", thoughts="All done")
     )
 
     result = await mock_agent.execute_task("Test task")
@@ -73,11 +69,7 @@ async def test_task_execution_with_tool(mock_agent):
     # Mock tool
     mock_tool = MagicMock()
     mock_tool.name = "test_tool"
-    mock_tool.execute = AsyncMock(
-        return_value=ToolResult(
-            success=True, message="Tool executed", data="tool result"
-        )
-    )
+    mock_tool.execute = AsyncMock(return_value=ToolResult(success=True, message="Tool executed", data="tool result"))
     mock_agent.register_tool(mock_tool)
 
     # Mock LLM to first request tool, then complete
@@ -89,9 +81,7 @@ async def test_task_execution_with_tool(mock_agent):
             is_complete=False,
             thoughts="Using tool",
         ),
-        LLMAction(
-            is_complete=True, result="Task completed with tool", thoughts="All done"
-        ),
+        LLMAction(is_complete=True, result="Task completed with tool", thoughts="All done"),
     ]
 
     result = await mock_agent.execute_task("Test task with tool")

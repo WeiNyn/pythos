@@ -75,9 +75,7 @@ async def test_write_file_tool(temp_dir: Path):
 
     # Test writing to nested path
     nested_path = temp_dir / "nested" / "test.txt"
-    result = await tool.execute(
-        {"path": str(nested_path), "content": content, "create_dirs": True}
-    )
+    result = await tool.execute({"path": str(nested_path), "content": content, "create_dirs": True})
 
     assert result.success
     assert nested_path.exists()
@@ -90,9 +88,7 @@ async def test_search_files_tool(nested_files: Path):
     tool = SearchFilesTool()
 
     # Test searching for .txt files
-    result = await tool.execute(
-        {"directory": str(nested_files), "pattern": "*.txt", "recursive": True}
-    )
+    result = await tool.execute({"directory": str(nested_files), "pattern": "*.txt", "recursive": True})
 
     assert result.success
     assert result.data is not None
@@ -100,9 +96,7 @@ async def test_search_files_tool(nested_files: Path):
     assert len(files) == 2  # Should find 2 .txt files
 
     # Test searching for Python files
-    result = await tool.execute(
-        {"directory": str(nested_files), "pattern": "*.py", "recursive": True}
-    )
+    result = await tool.execute({"directory": str(nested_files), "pattern": "*.py", "recursive": True})
 
     assert result.success
     assert result.data is not None
@@ -164,9 +158,7 @@ function testFunction() {
 }
 >>>>>>> REPLACE"""
 
-    result = await tool.execute(
-        {"path": str(test_file), "content": replacement_content}
-    )
+    result = await tool.execute({"path": str(test_file), "content": replacement_content})
 
     assert result.success
     assert result.data["replacements_made"] == 1
@@ -181,9 +173,7 @@ repeat
 REPLACED
 >>>>>>> REPLACE"""
 
-    result = await tool.execute(
-        {"path": str(test_file), "content": replacement_content, "count": 2}
-    )
+    result = await tool.execute({"path": str(test_file), "content": replacement_content, "count": 2})
 
     assert result.success
     assert result.data["replacements_made"] == 2
@@ -197,20 +187,14 @@ not_existing_text
 any_replacement
 >>>>>>> REPLACE"""
 
-    result = await tool.execute(
-        {"path": str(test_file), "content": replacement_content}
-    )
+    result = await tool.execute({"path": str(test_file), "content": replacement_content})
 
-    assert (
-        result.success
-    )  # Tool execution should still succeed even if no replacements were made
+    assert result.success  # Tool execution should still succeed even if no replacements were made
     assert result.data["replacements_made"] == 0
     assert "Search text not found" in result.message
 
     # Test invalid file path
-    result = await tool.execute(
-        {"path": "nonexistent.txt", "content": replacement_content}
-    )
+    result = await tool.execute({"path": "nonexistent.txt", "content": replacement_content})
 
     assert not result.success
     assert "not found" in result.message
@@ -244,9 +228,7 @@ async def test_run_command_line_tool(temp_dir: Path):
         mock_run.return_value = mock_process
 
         # Test basic command execution with no file changes
-        result = await tool.execute(
-            {"command": "echo 'test'", "working_dir": str(temp_dir)}
-        )
+        result = await tool.execute({"command": "echo 'test'", "working_dir": str(temp_dir)})
 
         assert result.success
         assert result.data["stdout"] == "Command output"
@@ -284,18 +266,14 @@ async def test_run_command_line_tool(temp_dir: Path):
         mock_process.stderr = "Command failed"
         mock_run.return_value = mock_process
 
-        result = await tool.execute(
-            {"command": "failing_command", "working_dir": str(temp_dir)}
-        )
+        result = await tool.execute({"command": "failing_command", "working_dir": str(temp_dir)})
 
         assert not result.success
         assert result.data["stderr"] == "Command failed"
         assert result.data["return_code"] == 1
 
         # Test with invalid working directory
-        result = await tool.execute(
-            {"command": "echo test", "working_dir": "/nonexistent/path"}
-        )
+        result = await tool.execute({"command": "echo test", "working_dir": "/nonexistent/path"})
 
         assert not result.success
         assert "not found" in result.message
