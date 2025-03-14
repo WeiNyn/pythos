@@ -37,6 +37,7 @@ class AgentConfig(BaseModel):
     debug: DebugSettings = DebugSettings()
     logging: LogConfig = LogConfig()
 
+    @classmethod
     @validator("working_directory")
     def validate_working_directory(cls, v: Path) -> Path:
         """Ensure working directory exists"""
@@ -44,6 +45,7 @@ class AgentConfig(BaseModel):
             raise ValueError(f"Working directory does not exist: {v}")
         return v
 
+    @classmethod
     @validator("api_key")
     def validate_api_key(cls, v: str) -> str:
         """Ensure API key is provided"""

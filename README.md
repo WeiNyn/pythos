@@ -1,10 +1,10 @@
-# Cline - LLM Agent Framework
+# Pythos - LLM Agent Framework
 
 A powerful Python framework for building and integrating LLM-powered agent systems with debugging capabilities and state management.
 
 ## Project Information
 
-**Cline** is a sophisticated LLM Agent framework designed to facilitate the creation, execution, and management of LLM-powered tasks. It provides a structured approach to agent development with robust features for debugging, state management, and tool execution.
+**Pythos** is a sophisticated LLM Agent framework designed to facilitate the creation, execution, and management of LLM-powered tasks. It provides a structured approach to agent development with robust features for debugging, state management, and tool execution.
 
 ### Key Features
 
@@ -86,8 +86,8 @@ llm_agent/
 2. **Installation**:
    ```bash
    # Clone the repository
-   git clone https://github.com/your-org/cline.git
-   cd cline
+   git clone https://github.com/WeiNyn/pythos.git
+   cd pythos
    
    # Create a virtual environment
    python -m venv .venv
@@ -253,7 +253,7 @@ pip install -r requirements.txt
    ```
 3. Run the CLI:
    ```bash
-   python cline.py
+   python pythos.py
    ```
 
 ## CLI Usage
@@ -262,10 +262,10 @@ The CLI provides an interactive interface for executing tasks with your agent:
 
 ```bash
 # Run with default config.yml
-python cline.py
+python pythos.py
 
 # Run with custom config file
-python cline.py --config path/to/config.yml
+python pythos.py --config path/to/config.yml
 ```
 
 ### Features
@@ -300,8 +300,8 @@ debug:
 ### Project Structure
 
 ```
-cline/
-├── cline.py              # CLI application
+pythos/
+├── pythos.py              # CLI application
 ├── config.yml.example    # Example configuration
 ├── llm_agent/
 │   ├── agent.py         # Core agent implementation

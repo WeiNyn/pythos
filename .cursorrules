@@ -1,10 +1,10 @@
-# Cline Project Rules
+# Pythos Project Rules
 
-This document provides detailed guidance for contributors to the Cline LLM Agent Framework.
+This document provides detailed guidance for contributors to the Pythos LLM Agent Framework.
 
 ## Project Overview
 
-Cline is a Python framework for building LLM-powered agents with sophisticated debugging, state management, and tool execution capabilities. The framework is designed to be extensible, allowing developers to add new tools and LLM providers.
+Pythos is a Python framework for building LLM-powered agents with sophisticated debugging, state management, and tool execution capabilities. The framework is designed to be extensible, allowing developers to add new tools and LLM providers.
 
 ## Architecture Diagrams
 
