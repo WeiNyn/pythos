@@ -4,6 +4,7 @@ import asyncio
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
 from termcolor import colored
 
 from llm_agent.agent import Agent
@@ -12,9 +13,9 @@ from llm_agent.config import AgentConfig, BreakpointConfig, DebugSettings
 from llm_agent.debug import BreakpointType
 from llm_agent.logging import LogConfig, TyperLogger
 from llm_agent.state.config import StateStorageConfig
-from dotenv import load_dotenv
 
 load_dotenv()
+
 
 async def main() -> None:
     """Run a simple task with enhanced debugging"""
@@ -64,7 +65,7 @@ async def main() -> None:
 
     # Create a custom approval callback
     approval_callback = ConsoleApprovalCallback()
-    
+
     # Initialize agent with the callback
     agent = Agent(config, approval_callback=approval_callback)
 
@@ -92,7 +93,7 @@ async def main() -> None:
                 "Description": task["task"],
                 "Relevance": task["relevance"],
                 "Status": "Completed" if task["completed"] else "In Progress",
-            }
+            },
         )
 
     logger.start_task("Getting Related Tasks...")
@@ -107,7 +108,7 @@ async def main() -> None:
                 "Description": task["task"],
                 "Similarity": f"{task['similarity']:.2f}",
                 "Status": status,
-            }
+            },
         )
 
     logger.show_panel("Task Complete", "All operations finished successfully", style="green")

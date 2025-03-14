@@ -14,7 +14,7 @@ import termcolor
 from pydantic import BaseModel
 
 from llm_agent.tools.base import ToolResult
-from .base import AgentLogger, LogConfig
+
 from .typer_logger import TyperLogger
 
 # Constants for visual formatting
@@ -247,5 +247,6 @@ class AgentLogger:
     def critical(self, msg: str, **kwargs) -> None:
         """Log critical message"""
         self.log(logging.CRITICAL, msg, **kwargs)
+
 
 __all__ = ["AgentLogger", "LogConfig", "TyperLogger"]

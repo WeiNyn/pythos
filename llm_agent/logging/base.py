@@ -76,4 +76,4 @@ class AgentLogger(ABC):
     @abstractmethod
     def show_progress(self, total: int, description: str = "Processing...") -> None:
         """Show a progress bar"""
-        pass 
+        pass

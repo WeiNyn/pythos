@@ -40,16 +40,16 @@ class ConsoleApprovalCallback(ApprovalCallback):
         Returns:
             bool: True if approved, False if rejected
         """
-        print(f"\nTool Execution Request:")
+        print("\nTool Execution Request:")
         print(f"Tool: {tool_name}")
         print(f"Arguments: {args}")
         if description:
             print(f"Description: {description}")
-        
+
         while True:
             response = input("\nDo you approve this tool execution? (y/n): ").lower()
-            if response in ('y', 'yes'):
+            if response in ("y", "yes"):
                 return True
-            if response in ('n', 'no'):
+            if response in ("n", "no"):
                 return False
-            print("Please enter 'y' or 'n'") 
+            print("Please enter 'y' or 'n'")

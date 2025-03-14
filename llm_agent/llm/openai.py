@@ -20,7 +20,9 @@ from .rate_limiter import RateLimiter
 class OpenAIProvider(BaseLLMProvider):
     """OpenAI-based LLM provider implementation"""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash-thinking-exp-01-21", rpm: int = 10, base_url: str = None):
+    def __init__(
+        self, api_key: str, model: str = "gemini-2.0-flash-thinking-exp-01-21", rpm: int = 10, base_url: str = None
+    ):
         """Initialize with API key and rate limit
 
         Args:

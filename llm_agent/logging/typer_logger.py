@@ -6,9 +6,7 @@ import time
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-import typer
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -140,6 +138,6 @@ class TyperLogger(AgentLogger):
             console=self.console,
         ) as progress:
             task = progress.add_task(description, total=total)
-            for i in range(total):
+            for _ in range(total):
                 progress.update(task, advance=1)
-                time.sleep(0.1)  # Simulate work 
+                time.sleep(0.1)  # Simulate work

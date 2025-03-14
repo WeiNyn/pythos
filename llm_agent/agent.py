@@ -11,7 +11,7 @@ from .callbacks import ApprovalCallback, ConsoleApprovalCallback
 from .config import AgentConfig
 from .debug import BreakpointType, DebugCallback, DebugInfo, DebugSession
 from .llm.base import BaseLLMProvider
-from .logging import AgentLogger, LogConfig, TyperLogger
+from .logging import AgentLogger, TyperLogger
 from .state import TaskState
 from .state.storage import JsonStateStorage, SqliteStateStorage, StateStorage
 from .tools.base import BaseTool
@@ -220,11 +220,9 @@ class Agent:
                         or self.state.consecutive_auto_approvals >= self.config.max_consecutive_auto_approvals
                     ):
                         approved = await self.approval_callback.get_approval(
-                            tool_name=action.tool_name,
-                            args=action.tool_args,
-                            description=action.thoughts
+                            tool_name=action.tool_name, args=action.tool_args, description=action.thoughts
                         )
-                        
+
                         if not approved:
                             self.logger.info(
                                 f"Tool execution rejected: {action.tool_name}",
@@ -232,7 +230,7 @@ class Agent:
                                 tool_name=action.tool_name,
                             )
                             continue
-                        
+
                         self.state.reset_auto_approvals()
                     else:
                         self.state.increment_auto_approvals()
