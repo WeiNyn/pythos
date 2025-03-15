@@ -1,4 +1,4 @@
-# Cline Agent Configuration
+# Pythos Agent Configuration
 
 # LLM Provider Settings
 llm_provider: "openai"  # Currently supports: openai
